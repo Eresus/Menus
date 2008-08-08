@@ -207,7 +207,7 @@ class TMenus extends TListContentPlugin {
 						if ($item['is-selected']) $template = $this->menu['tmplSpecial'];
 					break;
 					case 2: # для выбранного пункта если выбран его подпункт
-						if ((strpos($Eresus->request['path'], $item['url']) === 0) && $item['name'] != 'main') $template = $this->menu['tmplSpecial'];
+						if ((strpos($Eresus->request['path'], $page->clientURL($item['id'])) === 0) && $item['name'] != 'main') $template = $this->menu['tmplSpecial'];
 					break;
 					case 3: # для пунктов, имеющих подпункты
 						if (!empty($item['submenu'])) $template = $this->menu['tmplSpecial'];
