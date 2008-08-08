@@ -192,6 +192,7 @@ class TMenus extends TListContentPlugin {
 				if ($item['type'] == 'url') {
 					$item = $Eresus->sections->get($item['id']);
 					$item['url'] = $page->replaceMacros($item['content']);
+					if (substr($item['url'], 0, 1) == '/') $item['url'] = httpRoot.substr($item['url'], 1);
 				} else $item['url'] = httpRoot.$path.($item['name']=='main'?'':$item['name'].'/');
 				$item['level'] = $level;
 				$item['is-selected'] = $item['id'] == $page->id;
