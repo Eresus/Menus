@@ -25,12 +25,13 @@
  * ИСПОЛЬЗОВАНИЯ В КОНКРЕТНЫХ ЦЕЛЯХ. Для получения более подробной
  * информации ознакомьтесь со Стандартной Общественной Лицензией GNU.
  *
+ * $Id$
  */
 class TMenus extends TListContentPlugin {
 	var $name = 'menus';
 	var $title = 'Управление меню';
 	var $type = 'client,admin';
-	var $version = '1.04';
+	var $version = '1.05';
 	var $kernel = '2.10rc';
 	var $description = 'Менеджер меню';
 	var $table = array (
