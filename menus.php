@@ -6,7 +6,7 @@
  *
  * Управление меню
  *
- * @version 1.04
+ * @version 1.05
  *
  * @copyright   2007-2008, Eresus Group, http://eresus.ru/
  * @license     http://www.gnu.org/licenses/gpl.txt  GPL License 3
@@ -31,7 +31,7 @@ class TMenus extends TListContentPlugin {
 	var $name = 'menus';
 	var $title = 'Управление меню';
 	var $type = 'client,admin';
-	var $version = '1.05';
+	var $version = '1.05b';
 	var $kernel = '2.10rc';
 	var $description = 'Менеджер меню';
 	var $table = array (
@@ -69,6 +69,7 @@ class TMenus extends TListContentPlugin {
 			`tmplSpecial` text,
 			`specialMode` tinyint(3) unsigned default 0,
 			`invisible` tinyint(1) unsigned default 0,
+			`counterReset` int(10) unsigned default 0,
 			PRIMARY KEY  (`id`),
 			KEY `name` (`name`),
 			KEY `active` (`active`)
@@ -77,8 +78,9 @@ class TMenus extends TListContentPlugin {
 	var $settings = array(
 	);
 	var $menu = null;
-	var $pages = array(); # Путь по страницым
-	var $ids = array(); # Путь по страницым (только идентификаторы)
+	var $pages = array(); # Путь по страницам
+	var $ids = array(); # Путь по страницам (только идентификаторы)
+
  /**
 	* Конструктор
 	*/
@@ -113,6 +115,7 @@ class TMenus extends TListContentPlugin {
 			'tmplSpecial' => arg('tmplSpecial', 'dbsafe'),
 			'specialMode' => arg('specialMode', 'dbsafe'),
 			'invisible' => arg('invisible', 'int'),
+			'counterReset' => arg('counterReset', 'int'),
 		);
 
 		$Eresus->db->insert($this->table['name'], $item);
@@ -138,6 +141,7 @@ class TMenus extends TListContentPlugin {
 		$item['tmplSpecial'] = arg('tmplSpecial', 'dbsafe');
 		$item['specialMode'] = arg('specialMode', 'dbsafe');
 		$item['invisible'] = arg('invisible', 'int');
+		$item['counterReset'] = arg('counterReset', 'int');
 
 		$Eresus->db->updateItem($this->table['name'], $item, "`id`='".$item['id']."'");
 		sendNotify('Изменено меню: '.$item['caption']);
@@ -188,6 +192,7 @@ class TMenus extends TListContentPlugin {
 		$items = $Eresus->sections->children($owner, $Eresus->user['auth'] ? $Eresus->user['access'] : GUEST, SECTIONS_ACTIVE | ($this->menu['invisible']? 0 : SECTIONS_VISIBLE));
 		if (count($items)) {
 			$result = array();
+			$counter = 1;
 			foreach($items as $item) {
 				$template = $this->menu['tmplItem'];
 				if ($item['type'] == 'url') {
@@ -214,6 +219,8 @@ class TMenus extends TListContentPlugin {
 						if (!empty($item['submenu'])) $template = $this->menu['tmplSpecial'];
 					break;
 				}
+				$item['counter'] = $counter++;
+				if ($this->menu['counterReset'] && $counter > $this->menu['counterReset']) $counter = 1;
 				$result[] = $this->replaceMacros($template, $item);
 			}
 			$result = implode($this->menu['glue'], $result);
@@ -234,6 +241,7 @@ class TMenus extends TListContentPlugin {
 		array_unshift($sections[1], -1);
 		array_unshift($sections[0], 'КОРЕНЬ');
 		array_unshift($sections[1], 0);
+
 		$form = array(
 			'name' => 'FormCreate',
 			'caption' => 'Создать меню',
@@ -262,11 +270,14 @@ class TMenus extends TListContentPlugin {
 					'для пунктов, имеющих подпункты'
 					)
 				),
+				array('type'=>'edit','name'=>'counterReset','label'=>'Сбрасывать счётчик на', 'width' => '20px', 'comment' => '0 - не сбрасывать', 'default' => 0),
 				array('type'=>'divider'),
 				array('type'=>'text', 'value' =>
 					'Макросы:<ul>'.
 					'<li><b>Все элементы страницы</b></li>'.
-					'<li><b>$(level)</b> - номер текущего уровня</li><li><b>$(url)</b> - ссылка</li>'.
+					'<li><b>$(level)</b> - номер текущего уровня</li>'.
+					'<li><b>$(counter)</b> - порядковый номер текущего пункта</li>'.
+					'<li><b>$(url)</b> - ссылка</li>'.
 					'<li><b>$(submenu)</b> - место для вставки подменю</li>'.
 					'<li><b>{%selected?строка1:строка2}</b> - если элемент выбран, вставить строка1, иначе строка2</li>'.
 					'<li><b>{%parent?строка1:строка2}</b> - если элемент находится среди родительских разделов выбранного элемента, вставить строка1, иначе строка2</li>'.
@@ -277,6 +288,7 @@ class TMenus extends TListContentPlugin {
 			'buttons' => array('ok', 'cancel'),
 		);
 		$result = $page->renderForm($form);
+
 		return $result;
 	}
 	#--------------------------------------------------------------------------------------------------------------------------------------------------------------#
@@ -318,11 +330,14 @@ class TMenus extends TListContentPlugin {
 					'для пунктов, имеющих подпункты'
 					)
 				),
+				array('type'=>'edit','name'=>'counterReset','label'=>'Сбрасывать счётчик на', 'width' => '20px', 'comment' => '0 - не сбрасывать'),
 				array('type'=>'divider'),
 				array('type'=>'text', 'value' =>
 					'Макросы:<ul>'.
 					'<li><b>Все элементы страницы</b></li>'.
-					'<li><b>$(level)</b> - номер текущего уровня</li><li><b>$(url)</b> - ссылка</li>'.
+					'<li><b>$(level)</b> - номер текущего уровня</li>'.
+					'<li><b>$(counter)</b> - порядковый номер текущего пункта</li>'.
+					'<li><b>$(url)</b> - ссылка</li>'.
 					'<li><b>$(submenu)</b> - место для вставки подменю</li>'.
 					'<li><b>{%selected?строка1:строка2}</b> - если элемент выбран, вставить строка1, иначе строка2</li>'.
 					'<li><b>{%parent?строка1:строка2}</b> - если элемент находится среди родительских разделов выбранного элемента, вставить строка1, иначе строка2</li>'.
