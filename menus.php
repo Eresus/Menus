@@ -210,7 +210,7 @@ class TMenus extends TListContentPlugin {
 	 * @param int    $level[optional]  Уровень вложенности
 	 * @return string
 	 */
-	function menuBranch($owner = 0, $path = '', $level = 0)
+	function menuBranch($owner = 0, $path = '', $level = 1)
 	{
 		global $Eresus, $page;
 
@@ -246,7 +246,7 @@ class TMenus extends TListContentPlugin {
 
 				}
 
-				$item['level'] = $level + 1;
+				$item['level'] = $level;
 				$item['is-selected'] = $item['id'] == $page->id;
 				$item['is-parent'] = !$item['is-selected'] && in_array($item['id'], $this->ids);
 				#var_dump($item['caption']);
@@ -280,7 +280,7 @@ class TMenus extends TListContentPlugin {
 
 			}
 			$result = implode($this->menu['glue'], $result);
-			$result = array('level'=> ($level+1), 'items'=>$result);
+			$result = array('level'=> ($level), 'items'=>$result);
 			$result = $this->replaceMacros($this->menu['tmplList'], $result);
 		}
 		return $result;
@@ -450,6 +450,9 @@ class TMenus extends TListContentPlugin {
 
 		preg_match_all('/\$\(Menus:(.+)?\)/Usi', $text, $menus, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
 		$delta = 0;
+
+		$relative = substr($Eresus->request['url'], strlen($Eresus->root), 5);
+		if ($relative && $relative != 'main/') array_shift($this->ids);
 		for($i = 0; $i < count($menus); $i++) {
 			$this->menu = $Eresus->db->selectItem($this->table['name'], "`name`='".$menus[$i][1][0]."' AND `active` = 1");
 			if (!is_null($this->menu)) {
