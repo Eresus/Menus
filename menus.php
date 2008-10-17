@@ -31,7 +31,7 @@ class TMenus extends TListContentPlugin {
 	var $name = 'menus';
 	var $title = 'Управление меню';
 	var $type = 'client,admin';
-	var $version = '1.05b';
+	var $version = '1.05';
 	var $kernel = '2.10rc';
 	var $description = 'Менеджер меню';
 	var $table = array (
@@ -122,7 +122,12 @@ class TMenus extends TListContentPlugin {
 		sendNotify('Добавлено меню: '.$item['caption']);
 		goto(arg('submitURL'));
 	}
-	#--------------------------------------------------------------------------------------------------------------------------------------------------------------#
+	//------------------------------------------------------------------------------
+	/**
+	 * Обновление меню
+	 *
+	 * @see core/classes/backward/TContentPlugin#update()
+	 */
 	function update()
 	{
 		global $Eresus;
@@ -147,20 +152,39 @@ class TMenus extends TListContentPlugin {
 		sendNotify('Изменено меню: '.$item['caption']);
 		goto(arG('submitURL'));
 	}
-	#--------------------------------------------------------------------------------------------------------------------------------------------------------------#
+	//------------------------------------------------------------------------------
+	/**
+	 * Замена макросов
+	 *
+	 * @param string $template  Шаблон
+	 * @param array  $item      Элемент-источник данных
+	 * @return string
+	 *
+	 * @see core/classes/backward/TPlugin#replaceMacros($template, $item)
+	 */
 	function replaceMacros($template, $item)
 	{
 		preg_match_all('|{%selected\?(.*?):(.*?)}|i', $template, $matches);
 		for($i = 0; $i < count($matches[0]); $i++)
 			$template = str_replace($matches[0][$i], $item['is-selected']?$matches[1][$i]:$matches[2][$i], $template);
+
 		preg_match_all('|{%parent\?(.*?):(.*?)}|i', $template, $matches);
 		for($i = 0; $i < count($matches[0]); $i++)
 			$template = str_replace($matches[0][$i], $item['is-parent']?$matches[1][$i]:$matches[2][$i], $template);
+
 		$template = parent::replaceMacros($template, $item);
+
 		return $template;
 	}
-	#--------------------------------------------------------------------------------------------------------------------------------------------------------------#
-	function pagesBranch($owner = 0, $level = 0)
+	//------------------------------------------------------------------------------
+	/**
+	 * Построение ветки разделов для диалогов добавления/изменения
+	 *
+	 * @param int $owner[optional]  Родительский раздел
+	 * @param int $level[optional]  Уровень вложенности
+	 * @return array
+	 */
+	function adminSectionBranch($owner = 0, $level = 0)
 	{
 		global $Eresus;
 
@@ -169,7 +193,7 @@ class TMenus extends TListContentPlugin {
 		if (count($items)) foreach($items as $item) {
 			$result[0][] = str_repeat('- ', $level).$item['caption'];
 			$result[1][] = $item['id'];
-			$sub = $this->pagesBranch($item['id'], $level+1);
+			$sub = $this->adminSectionBranch($item['id'], $level+1);
 			if (count($sub[0])) {
 				$result[0] = array_merge($result[0], $sub[0]);
 				$result[1] = array_merge($result[1], $sub[1]);
@@ -177,12 +201,16 @@ class TMenus extends TListContentPlugin {
 		}
 		return $result;
 	}
-	#--------------------------------------------------------------------------------------------------------------------------------------------------------------#
+	//------------------------------------------------------------------------------
+	/**
+	 * Построение ветки меню
+	 *
+	 * @param int    $owner[optional]  Идентификатор родительского раздела
+	 * @param string $path[optional]   URI родительского раздела
+	 * @param int    $level[optional]  Уровень вложенности
+	 * @return string
+	 */
 	function menuBranch($owner = 0, $path = '', $level = 1)
-	# Функция строит ветку меню начиная от элемента с id = $owner
-	#   $owner - id корневого предка
-	#   $path - виртуальный путь к страницам
-	#   $level - уровень вложенности
 	{
 		global $Eresus, $page;
 
@@ -229,14 +257,17 @@ class TMenus extends TListContentPlugin {
 		}
 		return $result;
 	}
-	#--------------------------------------------------------------------------------------------------------------------------------------------------------------#
-	# Административные функции
-	#--------------------------------------------------------------------------------------------------------------------------------------------------------------#
+	//------------------------------------------------------------------------------
+	/**
+	 * Диалог добавления меню
+	 *
+	 * @return string
+	 */
 	function adminAddItem()
 	{
 		global $page;
 
-		$sections = $this->pagesBranch();
+		$sections = $this->adminSectionBranch();
 		array_unshift($sections[0], 'ТЕКУЩИЙ РАЗДЕЛ');
 		array_unshift($sections[1], -1);
 		array_unshift($sections[0], 'КОРЕНЬ');
@@ -291,13 +322,18 @@ class TMenus extends TListContentPlugin {
 
 		return $result;
 	}
-	#--------------------------------------------------------------------------------------------------------------------------------------------------------------#
+	//------------------------------------------------------------------------------
+	/**
+	 * Диалог изменения меню
+	 *
+	 * @return string
+	 */
 	function adminEditItem()
 	{
 		global $page, $Eresus;
 
 		$item = $Eresus->db->selectItem($this->table['name'], "`id`='".arg('id', 'int')."'");
-		$sections = $this->pagesBranch();
+		$sections = $this->adminSectionBranch();
 		array_unshift($sections[0], 'ТЕКУЩИЙ РАЗДЕЛ');
 		array_unshift($sections[1], -1);
 		array_unshift($sections[0], 'КОРЕНЬ');
@@ -350,21 +386,36 @@ class TMenus extends TListContentPlugin {
 		$result = $page->renderForm($form, $item);
 		return $result;
 	}
-	#--------------------------------------------------------------------------------------------------------------------------------------------------------------#
+	//------------------------------------------------------------------------------
+	/**
+	 * Вывод АТ плагина
+	 *
+	 * @return string
+	 */
 	function adminRender()
 	{
 		$result = $this->adminRenderContent();
 		return $result;
 	}
-	#--------------------------------------------------------------------------------------------------------------------------------------------------------------#
-	# Обработчики событий
-	#--------------------------------------------------------------------------------------------------------------------------------------------------------------#
+	//------------------------------------------------------------------------------
+	/**
+	 * Сбор информации о текущем разделе
+	 *
+	 * @param array  $item
+	 * @param string $url
+	 */
 	function clientOnURLSplit($item, $url)
 	{
 		$this->pages[] = $item;
 		$this->ids[] = $item['id'];
 	}
-	#--------------------------------------------------------------------------------------------------------------------------------------------------------------#
+	//------------------------------------------------------------------------------
+	/**
+	 * Поиск и подстановка меню
+	 *
+	 * @param string $text
+	 * @return string
+	 */
 	function clientOnPageRender($text)
 	{
 		global $Eresus, $page;
@@ -389,14 +440,15 @@ class TMenus extends TListContentPlugin {
 		}
 		return $text;
 	}
-	#--------------------------------------------------------------------------------------------------------------------------------------------------------------#
+	//------------------------------------------------------------------------------
+  /**
+   * Добавление пункта в меню "Расширения"
+   */
 	function adminOnMenuRender()
 	{
 		global $page;
 
 		$page->addMenuItem(admExtensions, array ('access'  => ADMIN, 'link'  => $this->name, 'caption'  => $this->title, 'hint'  => $this->description));
 	}
-	#--------------------------------------------------------------------------------------------------------------------------------------------------------------#
+	//------------------------------------------------------------------------------
 }
-#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-#
-?>
