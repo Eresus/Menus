@@ -210,28 +210,55 @@ class TMenus extends TListContentPlugin {
 	 * @param int    $level[optional]  ”ровень вложенности
 	 * @return string
 	 */
-	function menuBranch($owner = 0, $path = '', $level = 1)
+	function menuBranch($owner = 0, $path = '', $level = 0)
 	{
 		global $Eresus, $page;
 
 		$result = '';
 		if (strpos($path, httpRoot) !== false) $path = substr($path, strlen(httpRoot));
 		if ($owner == -1) $owner = $page->id;
-		$items = $Eresus->sections->children($owner, $Eresus->user['auth'] ? $Eresus->user['access'] : GUEST, SECTIONS_ACTIVE | ($this->menu['invisible']? 0 : SECTIONS_VISIBLE));
+		# ќпредел€ем допустимый уровень доступа
+		$access = $Eresus->user['auth'] ? $Eresus->user['access'] : GUEST;
+		# ќпредел€ем услови€ фильтрации
+		$flags = SECTIONS_ACTIVE | ( $this->menu['invisible'] ? 0 : SECTIONS_VISIBLE );
+		$items = $Eresus->sections->children($owner, $access, $flags);
+
 		if (count($items)) {
+
 			$result = array();
 			$counter = 1;
+
 			foreach($items as $item) {
+
 				$template = $this->menu['tmplItem'];
+				/*
+				 * ” разделов типа 'url' собственный механизм построени€ URI
+				 */
 				if ($item['type'] == 'url') {
+
 					$item = $Eresus->sections->get($item['id']);
 					$item['url'] = $page->replaceMacros($item['content']);
 					if (substr($item['url'], 0, 1) == '/') $item['url'] = httpRoot.substr($item['url'], 1);
-				} else $item['url'] = httpRoot.$path.($item['name']=='main'?'':$item['name'].'/');
-				$item['level'] = $level;
+
+				} else {
+
+					$item['url'] = httpRoot.$path.($item['name']=='main'?'':$item['name'].'/');
+
+				}
+
+				$item['level'] = $level + 1;
 				$item['is-selected'] = $item['id'] == $page->id;
 				$item['is-parent'] = !$item['is-selected'] && in_array($item['id'], $this->ids);
-				if ((!$this->menu['expandLevelAuto'] || ($level < $this->menu['expandLevelAuto'])) || (($item['is-parent'] || $item['is-selected']) && (!$this->menu['expandLevelMax'] || $level < $this->menu['expandLevelMax']))) {
+				#var_dump($item['caption']);
+
+				# true если раздел находитс€ в выбранной ветке
+				$inSelectedBranch = $item['is-parent'] || $item['is-selected'];
+				# true если не достигнут максимальный уровень ручного развЄртывани€
+				$notMaxExpandLevel = !$this->menu['expandLevelMax'] || $level < $this->menu['expandLevelMax'];
+				# true если не достигнут максимальный уровень автоматического развЄртывани€
+				$notMaxAutoExpandLevel = !$this->menu['expandLevelAuto'] || $level < $this->menu['expandLevelAuto'];
+
+				if ($notMaxAutoExpandLevel || ($inSelectedBranch && $notMaxExpandLevel)) {
 					$item['submenu'] = $this->menuBranch($item['id'], $path.$item['name'].'/', $level+1);
 				}
 				switch ($this->menu['specialMode']) {
@@ -250,9 +277,10 @@ class TMenus extends TListContentPlugin {
 				$item['counter'] = $counter++;
 				if ($this->menu['counterReset'] && $counter > $this->menu['counterReset']) $counter = 1;
 				$result[] = $this->replaceMacros($template, $item);
+
 			}
 			$result = implode($this->menu['glue'], $result);
-			$result = array('level'=>($level), 'items'=>$result);
+			$result = array('level'=> ($level+1), 'items'=>$result);
 			$result = $this->replaceMacros($this->menu['tmplList'], $result);
 		}
 		return $result;
