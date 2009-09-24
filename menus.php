@@ -271,7 +271,8 @@ class TMenus extends TListContentPlugin {
 						if ((strpos($Eresus->request['path'], $page->clientURL($item['id'])) === 0) && $item['name'] != 'main') $template = $this->menu['tmplSpecial'];
 					break;
 					case 3: # для пунктов, имеющих подпункты
-						if (!empty($item['submenu'])) $template = $this->menu['tmplSpecial'];
+						if (count($Eresus->sections->branch_ids($item['id'])))
+							$template = $this->menu['tmplSpecial'];
 					break;
 				}
 				$item['counter'] = $counter++;
