@@ -2,16 +2,15 @@
 /**
  * Menus
  *
- * Eresus 2, PHP 4.3.0
+ * Eresus 2.10
  *
  * Управление меню
  *
  * @version 1.05
  *
- * @copyright   2007-2008, Eresus Group, http://eresus.ru/
- * @license     http://www.gnu.org/licenses/gpl.txt  GPL License 3
- * @maintainer  Mikhail Krasilnikov <mk@procreat.ru>
- * @author      Mikhail Krasilnikov <mk@procreat.ru>
+ * @copyright 2007, Eresus Group, http://eresus.ru/
+ * @license http://www.gnu.org/licenses/gpl.txt  GPL License 3
+ * @author Mikhail Krasilnikov <mk@procreat.ru>
  *
  * Данная программа является свободным программным обеспечением. Вы
  * вправе распространять ее и/или модифицировать в соответствии с
@@ -25,13 +24,16 @@
  * ИСПОЛЬЗОВАНИЯ В КОНКРЕТНЫХ ЦЕЛЯХ. Для получения более подробной
  * информации ознакомьтесь со Стандартной Общественной Лицензией GNU.
  *
+ * @package Menus
+ *
  * $Id$
  */
-class TMenus extends TListContentPlugin {
+class TMenus extends TListContentPlugin
+{
 	var $name = 'menus';
 	var $title = 'Управление меню';
 	var $type = 'client,admin';
-	var $version = '1.05';
+	var $version = '1.05a';
 	var $kernel = '2.10rc';
 	var $description = 'Менеджер меню';
 	var $table = array (
@@ -231,9 +233,7 @@ class TMenus extends TListContentPlugin {
 			foreach($items as $item) {
 
 				$template = $this->menu['tmplItem'];
-				/*
-				 * У разделов типа 'url' собственный механизм построения URI
-				 */
+				/* У разделов типа 'url' собственный механизм построения URL */
 				if ($item['type'] == 'url') {
 
 					$item = $Eresus->sections->get($item['id']);
