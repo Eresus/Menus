@@ -208,7 +208,7 @@ class TMenus extends TListContentPlugin
 	 * Построение ветки меню
 	 *
 	 * @param int    $owner[optional]  Идентификатор родительского раздела
-	 * @param string $path[optional]   URI родительского раздела
+	 * @param string $path[optional]   URL родительского раздела
 	 * @param int    $level[optional]  Уровень вложенности
 	 * @return string
 	 */
@@ -219,6 +219,9 @@ class TMenus extends TListContentPlugin
 		$result = '';
 		if (strpos($path, httpRoot) !== false) $path = substr($path, strlen(httpRoot));
 		if ($owner == -1) $owner = $page->id;
+		$item = $Eresus->sections->get($owner);
+		if ($item['owner'] == 0 && $item['name'] == 'main')
+			$path = 'main/';
 		# Определяем допустимый уровень доступа
 		$access = $Eresus->user['auth'] ? $Eresus->user['access'] : GUEST;
 		# Определяем условия фильтрации
