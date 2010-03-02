@@ -2,13 +2,14 @@
 /**
  * Menus
  *
- * Eresus 2.10
+ * Eresus 2.12
  *
  * Управление меню
  *
  * @version 1.05
  *
  * @copyright 2007, Eresus Group, http://eresus.ru/
+ * @copyright 2010, ООО "Два слона", http://dvaslona.ru/
  * @license http://www.gnu.org/licenses/gpl.txt  GPL License 3
  * @author Mikhail Krasilnikov <mk@procreat.ru>
  *
@@ -28,13 +29,24 @@
  *
  * $Id$
  */
+
+/**
+ * Класс плагина
+ *
+ * @package Menus
+ */
 class TMenus extends TListContentPlugin
 {
 	var $name = 'menus';
 	var $title = 'Управление меню';
 	var $type = 'client,admin';
 	var $version = '1.05a';
-	var $kernel = '2.10rc';
+
+	/**
+	 * Требуемая версия ядра
+	 * @var string
+	 */
+	var $kernel = '2.12b';
 	var $description = 'Менеджер меню';
 	var $table = array (
 		'name' => 'menus',
@@ -86,11 +98,11 @@ class TMenus extends TListContentPlugin
  /**
 	* Конструктор
 	*/
-	function TMenus()
+	public function __construct()
 	{
 		global $Eresus;
 
-		parent::TListContentPlugin();
+		parent::__construct();
 		$Eresus->plugins->events['clientOnURLSplit'][] = $this->name;
 		$Eresus->plugins->events['clientOnPageRender'][] = $this->name;
 		$Eresus->plugins->events['adminOnMenuRender'][] = $this->name;
@@ -122,7 +134,7 @@ class TMenus extends TListContentPlugin
 
 		$Eresus->db->insert($this->table['name'], $item);
 		sendNotify('Добавлено меню: '.$item['caption']);
-		goto(arg('submitURL'));
+		HTTP::redirect(arg('submitURL'));
 	}
 	//------------------------------------------------------------------------------
 	/**
@@ -152,7 +164,7 @@ class TMenus extends TListContentPlugin
 
 		$Eresus->db->updateItem($this->table['name'], $item, "`id`='".$item['id']."'");
 		sendNotify('Изменено меню: '.$item['caption']);
-		goto(arG('submitURL'));
+		HTTP::redirect(arG('submitURL'));
 	}
 	//------------------------------------------------------------------------------
 	/**
