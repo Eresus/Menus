@@ -40,7 +40,7 @@ class TMenus extends TListContentPlugin
 	var $name = 'menus';
 	var $title = 'Управление меню';
 	var $type = 'client,admin';
-	var $version = '1.05a';
+	var $version = '1.05b';
 
 	/**
 	 * Требуемая версия ядра
