@@ -40,7 +40,7 @@ class TMenus extends TListContentPlugin
 	var $name = 'menus';
 	var $title = 'Управление меню';
 	var $type = 'client,admin';
-	var $version = '1.05a';
+	var $version = '1.05b';
 
 	/**
 	 * Требуемая версия ядра
@@ -77,7 +77,7 @@ class TMenus extends TListContentPlugin
 			`rootLevel` int(10) unsigned default 0,
 			`expandLevelAuto` int(10) unsigned default 0,
 			`expandLevelMax` int(10) unsigned default 0,
-			`glue` varchar(63) default '',
+			`glue` varchar(255) default '',
 			`tmplList` text,
 			`tmplItem` text,
 			`tmplSpecial` text,
@@ -91,7 +91,12 @@ class TMenus extends TListContentPlugin
 	);
 	var $settings = array(
 	);
-	var $menu = null;
+
+	/**
+	 * Текущее обрабатываемое меню
+	 * @var array
+	 */
+	private $menu = null;
 	var $pages = array(); # Путь по страницам
 	var $ids = array(); # Путь по страницам (только идентификаторы)
 
@@ -229,10 +234,12 @@ class TMenus extends TListContentPlugin
 		global $Eresus, $page;
 
 		$result = '';
-		if (strpos($path, httpRoot) !== false) $path = substr($path, strlen(httpRoot));
-		if ($owner == -1) $owner = $page->id;
+		if (strpos($path, httpRoot) !== false)
+			$path = substr($path, strlen(httpRoot));
+		if ($owner == -1)
+			$owner = $page->id;
 		$item = $Eresus->sections->get($owner);
-		if ($item['owner'] == 0 && $item['name'] == 'main')
+		if ($owner == 0 && $item && $item['name'] == 'main')
 			$path = 'main/';
 		# Определяем допустимый уровень доступа
 		$access = $Eresus->user['auth'] ? $Eresus->user['access'] : GUEST;
@@ -334,7 +341,7 @@ class TMenus extends TListContentPlugin
 				array('type'=>'header', 'value'=>'Шаблоны'),
 				array('type'=>'memo','name'=>'tmplList','label'=>'Шаблон блока одного уровня меню', 'height' => '3', 'default' => "<ul>\n\t$(items)\n</ul>"),
 				array('type'=>'text', 'value' => 'Макросы:<ul><li><b><li><b>$(level)</b> - номер текущего уровня</li><li><b>$(items)</b> - пункты меню</li></ul>'),
-				array('type'=>'edit','name'=>'glue','label'=>'Разделитель пунктов', 'width' => '100%', 'maxlength' => 63),
+				array('type'=>'edit','name'=>'glue','label'=>'Разделитель пунктов', 'width' => '100%', 'maxlength' => 255),
 				array('type'=>'memo','name'=>'tmplItem','label'=>'Шаблон пункта меню', 'height' => '3', 'default' => "<li><a href=\"$(url)\">$(caption)</a></li>"),
 				array('type'=>'memo','name'=>'tmplSpecial','label'=>'Специальный шаблон пункта меню', 'height' => '3', 'default' => "<li class=\"selected\"><a href=\"$(url)\">$(caption)</a></li>"),
 				array('type'=>'text', 'value' => 'Использовать специальный шаблон'),
@@ -399,7 +406,7 @@ class TMenus extends TListContentPlugin
 				array('type'=>'header', 'value'=>'Шаблоны'),
 				array('type'=>'memo','name'=>'tmplList','label'=>'Шаблон блока одного уровня меню', 'height' => '3'),
 				array('type'=>'text', 'value' => 'Макросы:<ul><li><b><li><b>$(level)</b> - номер текущего уровня</li><li><b>$(items)</b> - пункты меню</li></ul>'),
-				array('type'=>'edit','name'=>'glue','label'=>'Разделитель пунктов', 'width' => '100%', 'maxlength' => 63),
+				array('type'=>'edit','name'=>'glue','label'=>'Разделитель пунктов', 'width' => '100%', 'maxlength' => 255),
 				array('type'=>'memo','name'=>'tmplItem','label'=>'Шаблон пункта меню', 'height' => '3'),
 				array('type'=>'memo','name'=>'tmplSpecial','label'=>'Специальный шаблон пункта меню', 'height' => '3'),
 				array('type'=>'text', 'value' => 'Использовать специальный шаблон'),
