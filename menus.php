@@ -40,13 +40,13 @@ class TMenus extends TListContentPlugin
 	var $name = 'menus';
 	var $title = 'Управление меню';
 	var $type = 'client,admin';
-	var $version = '1.05b';
+	var $version = '1.05a';
 
 	/**
 	 * Требуемая версия ядра
 	 * @var string
 	 */
-	var $kernel = '2.12b';
+	var $kernel = '2.12';
 	var $description = 'Менеджер меню';
 	var $table = array (
 		'name' => 'menus',
@@ -102,6 +102,10 @@ class TMenus extends TListContentPlugin
 
  /**
 	* Конструктор
+	*
+	* @return TMenus
+	*
+	* @uses Eresus
 	*/
 	public function __construct()
 	{
@@ -113,8 +117,16 @@ class TMenus extends TListContentPlugin
 		$Eresus->plugins->events['adminOnMenuRender'][] = $this->name;
 	}
 	//------------------------------------------------------------------------------
+
  /**
 	* Добавление меню
+	*
+	* @return void
+	*
+	* @uses Eresus
+	* @uses sendNotify
+	* @uses HTTP::redirect
+	* @uses arg
 	*/
 	function insert()
 	{
@@ -142,10 +154,16 @@ class TMenus extends TListContentPlugin
 		HTTP::redirect(arg('submitURL'));
 	}
 	//------------------------------------------------------------------------------
+
 	/**
 	 * Обновление меню
 	 *
-	 * @see core/classes/backward/TContentPlugin#update()
+	 * @return void
+	 *
+	 * @uses Eresus
+	 * @uses sendNotify
+	 * @uses HTTP::redirect
+	 * @uses arg
 	 */
 	function update()
 	{
@@ -169,15 +187,16 @@ class TMenus extends TListContentPlugin
 
 		$Eresus->db->updateItem($this->table['name'], $item, "`id`='".$item['id']."'");
 		sendNotify('Изменено меню: '.$item['caption']);
-		HTTP::redirect(arG('submitURL'));
+		HTTP::redirect(arg('submitURL'));
 	}
 	//------------------------------------------------------------------------------
+
 	/**
 	 * Замена макросов
 	 *
 	 * @param string $template  Шаблон
 	 * @param array  $item      Элемент-источник данных
-	 * @return string
+	 * @return string  HTML
 	 *
 	 * @see core/classes/backward/TPlugin#replaceMacros($template, $item)
 	 */
@@ -185,23 +204,28 @@ class TMenus extends TListContentPlugin
 	{
 		preg_match_all('|{%selected\?(.*?):(.*?)}|i', $template, $matches);
 		for($i = 0; $i < count($matches[0]); $i++)
-			$template = str_replace($matches[0][$i], $item['is-selected']?$matches[1][$i]:$matches[2][$i], $template);
+			$template = str_replace($matches[0][$i], $item['is-selected']?$matches[1][$i]:$matches[2][$i],
+				$template);
 
 		preg_match_all('|{%parent\?(.*?):(.*?)}|i', $template, $matches);
 		for($i = 0; $i < count($matches[0]); $i++)
-			$template = str_replace($matches[0][$i], $item['is-parent']?$matches[1][$i]:$matches[2][$i], $template);
+			$template = str_replace($matches[0][$i], $item['is-parent']?$matches[1][$i]:$matches[2][$i],
+				$template);
 
 		$template = parent::replaceMacros($template, $item);
 
 		return $template;
 	}
 	//------------------------------------------------------------------------------
+
 	/**
 	 * Построение ветки разделов для диалогов добавления/изменения
 	 *
 	 * @param int $owner[optional]  Родительский раздел
 	 * @param int $level[optional]  Уровень вложенности
 	 * @return array
+	 *
+	 * @uses Eresus
 	 */
 	function adminSectionBranch($owner = 0, $level = 0)
 	{
@@ -221,13 +245,17 @@ class TMenus extends TListContentPlugin
 		return $result;
 	}
 	//------------------------------------------------------------------------------
+
 	/**
 	 * Построение ветки меню
 	 *
 	 * @param int    $owner[optional]  Идентификатор родительского раздела
 	 * @param string $path[optional]   URL родительского раздела
 	 * @param int    $level[optional]  Уровень вложенности
-	 * @return string
+	 * @return string  HTML
+	 *
+	 * @uses Eresus
+	 * @uses TClientUI
 	 */
 	function menuBranch($owner = 0, $path = '', $level = 1)
 	{
@@ -276,9 +304,11 @@ class TMenus extends TListContentPlugin
 				# true если раздел находится в выбранной ветке
 				$inSelectedBranch = $item['is-parent'] || $item['is-selected'];
 				# true если не достигнут максимальный уровень ручного развёртывания
-				$notMaxExpandLevel = !$this->menu['expandLevelMax'] || $level < $this->menu['expandLevelMax'];
+				$notMaxExpandLevel = !$this->menu['expandLevelMax'] ||
+					$level < $this->menu['expandLevelMax'];
 				# true если не достигнут максимальный уровень автоматического развёртывания
-				$notMaxAutoExpandLevel = !$this->menu['expandLevelAuto'] || $level < $this->menu['expandLevelAuto'];
+				$notMaxAutoExpandLevel = !$this->menu['expandLevelAuto'] ||
+					$level < $this->menu['expandLevelAuto'];
 
 				if ($notMaxAutoExpandLevel || ($inSelectedBranch && $notMaxExpandLevel)) {
 					$item['submenu'] = $this->menuBranch($item['id'], $path.$item['name'].'/', $level+1);
@@ -290,7 +320,11 @@ class TMenus extends TListContentPlugin
 						if ($item['is-selected']) $template = $this->menu['tmplSpecial'];
 					break;
 					case 2: # для выбранного пункта если выбран его подпункт
-						if ((strpos($Eresus->request['path'], $page->clientURL($item['id'])) === 0) && $item['name'] != 'main') $template = $this->menu['tmplSpecial'];
+						if (
+								(strpos($Eresus->request['path'], $page->clientURL($item['id'])) === 0) &&
+								$item['name'] != 'main'
+							)
+							$template = $this->menu['tmplSpecial'];
 					break;
 					case 3: # для пунктов, имеющих подпункты
 						if (count($Eresus->sections->branch_ids($item['id'])))
@@ -309,10 +343,13 @@ class TMenus extends TListContentPlugin
 		return $result;
 	}
 	//------------------------------------------------------------------------------
+
 	/**
 	 * Диалог добавления меню
 	 *
 	 * @return string
+	 *
+	 * @uses TAdminUI
 	 */
 	function adminAddItem()
 	{
@@ -330,20 +367,34 @@ class TMenus extends TListContentPlugin
 			'width' => '500px',
 			'fields' => array (
 				array('type'=>'hidden','name'=>'action', 'value'=>'insert'),
-				array('type'=>'edit','name'=>'name','label'=>'<b>Имя</b>', 'width' => '100px', 'comment' => 'для использования в макросах', 'pattern'=>'/[a-z]\w*/i', 'errormsg'=>'Имя должно начинаться с буквы и может содержать только латинские буквы и цифры'),
-				array('type'=>'edit','name'=>'caption','label'=>'<b>Название</b>', 'width' => '100%', 'hint' => 'Для внутреннего использования', 'pattern'=>'/.+/i', 'errormsg'=>'Название не может быть пустым'),
-				array('type'=>'select','name'=>'root','label'=>'Корневой раздел', 'values'=>$sections[1], 'items'=>$sections[0], 'extra' =>'onchange="this.form.rootLevel.disabled = this.value != -1"'),
-				array('type'=>'edit','name'=>'rootLevel','label'=>'Фикс. уровень', 'width' => '20px', 'comment' => '(0 - текущий уровень)', 'default' => 0, 'disabled' => true),
+				array('type'=>'edit','name'=>'name','label'=>'<b>Имя</b>', 'width' => '100px',
+					'comment' => 'для использования в макросах', 'pattern'=>'/[a-z]\w*/i',
+					'errormsg'=>'Имя должно начинаться с буквы и может содержать только латинские буквы и цифры'),
+				array('type'=>'edit','name'=>'caption','label'=>'<b>Название</b>', 'width' => '100%',
+					'hint' => 'Для внутреннего использования', 'pattern'=>'/.+/i',
+					'errormsg'=>'Название не может быть пустым'),
+				array('type'=>'select','name'=>'root','label'=>'Корневой раздел', 'values'=>$sections[1],
+					'items'=>$sections[0], 'extra' =>'onchange="this.form.rootLevel.disabled = this.value != -1"'),
+				array('type'=>'edit','name'=>'rootLevel','label'=>'Фикс. уровень', 'width' => '20px',
+					'comment' => '(0 - текущий уровень)', 'default' => 0, 'disabled' => true),
 				array('type'=>'checkbox','name'=>'invisible','label'=>'Показывать скрытые разделы'),
 				array('type'=>'header', 'value'=>'Уровни меню'),
-				array('type'=>'edit','name'=>'expandLevelAuto','label'=>'Всегда показывать', 'width' => '20px', 'comment' => 'уровней (0 - развернуть все)', 'default' => 0),
-				array('type'=>'edit','name'=>'expandLevelMax','label'=>'Разворачивать максимум', 'width' => '20px', 'comment' => 'уровней (0 - без ограничений)', 'default' => 0),
+				array('type'=>'edit','name'=>'expandLevelAuto','label'=>'Всегда показывать',
+					'width' => '20px', 'comment' => 'уровней (0 - развернуть все)', 'default' => 0),
+				array('type'=>'edit','name'=>'expandLevelMax','label'=>'Разворачивать максимум',
+					'width' => '20px', 'comment' => 'уровней (0 - без ограничений)', 'default' => 0),
 				array('type'=>'header', 'value'=>'Шаблоны'),
-				array('type'=>'memo','name'=>'tmplList','label'=>'Шаблон блока одного уровня меню', 'height' => '3', 'default' => "<ul>\n\t$(items)\n</ul>"),
-				array('type'=>'text', 'value' => 'Макросы:<ul><li><b><li><b>$(level)</b> - номер текущего уровня</li><li><b>$(items)</b> - пункты меню</li></ul>'),
-				array('type'=>'edit','name'=>'glue','label'=>'Разделитель пунктов', 'width' => '100%', 'maxlength' => 255),
-				array('type'=>'memo','name'=>'tmplItem','label'=>'Шаблон пункта меню', 'height' => '3', 'default' => "<li><a href=\"$(url)\">$(caption)</a></li>"),
-				array('type'=>'memo','name'=>'tmplSpecial','label'=>'Специальный шаблон пункта меню', 'height' => '3', 'default' => "<li class=\"selected\"><a href=\"$(url)\">$(caption)</a></li>"),
+				array('type'=>'memo','name'=>'tmplList','label'=>'Шаблон блока одного уровня меню',
+					'height' => '3', 'default' => "<ul>\n\t$(items)\n</ul>"),
+				array('type'=>'text', 'value' => 'Макросы:<ul><li><b><li><b>$(level)</b> - номер текущего '.
+					'уровня</li><li><b>$(items)</b> - пункты меню</li></ul>'),
+				array('type'=>'edit','name'=>'glue','label'=>'Разделитель пунктов', 'width' => '100%',
+					'maxlength' => 255),
+				array('type'=>'memo','name'=>'tmplItem','label'=>'Шаблон пункта меню', 'height' => '3',
+					'default' => "<li><a href=\"$(url)\">$(caption)</a></li>"),
+				array('type'=>'memo','name'=>'tmplSpecial','label'=>'Специальный шаблон пункта меню',
+					'height' => '3',
+					'default' => "<li class=\"selected\"><a href=\"$(url)\">$(caption)</a></li>"),
 				array('type'=>'text', 'value' => 'Использовать специальный шаблон'),
 				array('type'=>'select','name'=>'specialMode','items'=>array(
 					'нет',
@@ -352,7 +403,8 @@ class TMenus extends TListContentPlugin
 					'для пунктов, имеющих подпункты'
 					)
 				),
-				array('type'=>'edit','name'=>'counterReset','label'=>'Сбрасывать счётчик на', 'width' => '20px', 'comment' => '0 - не сбрасывать', 'default' => 0),
+				array('type'=>'edit','name'=>'counterReset','label'=>'Сбрасывать счётчик на',
+					'width' => '20px', 'comment' => '0 - не сбрасывать', 'default' => 0),
 				array('type'=>'divider'),
 				array('type'=>'text', 'value' =>
 					'Макросы:<ul>'.
@@ -361,11 +413,14 @@ class TMenus extends TListContentPlugin
 					'<li><b>$(counter)</b> - порядковый номер текущего пункта</li>'.
 					'<li><b>$(url)</b> - ссылка</li>'.
 					'<li><b>$(submenu)</b> - место для вставки подменю</li>'.
-					'<li><b>{%selected?строка1:строка2}</b> - если элемент выбран, вставить строка1, иначе строка2</li>'.
-					'<li><b>{%parent?строка1:строка2}</b> - если элемент находится среди родительских разделов выбранного элемента, вставить строка1, иначе строка2</li>'.
+					'<li><b>{%selected?строка1:строка2}</b> - если элемент выбран, вставить строка1, '.
+						'иначе строка2</li>'.
+					'<li><b>{%parent?строка1:строка2}</b> - если элемент находится среди родительских '.
+						'разделов выбранного элемента, вставить строка1, иначе строка2</li>'.
 					'</ul>'),
 				array('type'=>'divider'),
-				array('type'=>'text', 'value' => 'Для вставки меню используйте макрос <b>$(Menus:имя_меню)</b>'),
+				array('type'=>'text',
+					'value' => 'Для вставки меню используйте макрос <b>$(Menus:имя_меню)</b>'),
 			),
 			'buttons' => array('ok', 'cancel'),
 		);
@@ -374,10 +429,14 @@ class TMenus extends TListContentPlugin
 		return $result;
 	}
 	//------------------------------------------------------------------------------
+
 	/**
 	 * Диалог изменения меню
 	 *
 	 * @return string
+	 *
+	 * @uses Eresus
+	 * @uses TAdminUI
 	 */
 	function adminEditItem()
 	{
@@ -395,20 +454,33 @@ class TMenus extends TListContentPlugin
 			'width' => '500px',
 			'fields' => array (
 				array('type'=>'hidden','name'=>'update', 'value'=>$item['id']),
-				array('type'=>'edit','name'=>'name','label'=>'<b>Имя</b>', 'width' => '100px', 'comment' => 'для использования в макросах', 'pattern'=>'/[a-z]\w*/i', 'errormsg'=>'Имя должно начинаться с буквы и может содержать только латинские буквы и цифры'),
-				array('type'=>'edit','name'=>'caption','label'=>'<b>Название</b>', 'width' => '100%', 'hint' => 'Для внутреннего использования', 'pattern'=>'/.+/i', 'errormsg'=>'Название не может быть пустым'),
-				array('type'=>'select','name'=>'root','label'=>'Корневой раздел', 'values'=>$sections[1], 'items'=>$sections[0], 'extra' =>'onchange="this.form.rootLevel.disabled = this.value != -1"'),
-				array('type'=>'edit','name'=>'rootLevel','label'=>'Фикс. уровень', 'width' => '20px', 'comment' => '(0 - текущий уровень)', 'default' => 0, 'disabled' => $item['root'] != -1),
+				array('type'=>'edit','name'=>'name','label'=>'<b>Имя</b>', 'width' => '100px',
+					'comment' => 'для использования в макросах', 'pattern'=>'/[a-z]\w*/i',
+					'errormsg'=>'Имя должно начинаться с буквы и может содержать только латинские буквы и цифры'),
+				array('type'=>'edit','name'=>'caption','label'=>'<b>Название</b>', 'width' => '100%',
+					'hint' => 'Для внутреннего использования', 'pattern'=>'/.+/i',
+					'errormsg'=>'Название не может быть пустым'),
+				array('type'=>'select','name'=>'root','label'=>'Корневой раздел', 'values'=>$sections[1],
+					'items'=>$sections[0],
+					'extra' =>'onchange="this.form.rootLevel.disabled = this.value != -1"'),
+				array('type'=>'edit','name'=>'rootLevel','label'=>'Фикс. уровень', 'width' => '20px',
+					'comment' => '(0 - текущий уровень)', 'default' => 0, 'disabled' => $item['root'] != -1),
 				array('type'=>'header', 'value'=>'Уровни меню'),
-				array('type'=>'edit','name'=>'expandLevelAuto','label'=>'Всегда показывать', 'width' => '20px', 'comment' => 'уровней (0 - развернуть все)', 'default' => 0),
-				array('type'=>'edit','name'=>'expandLevelMax','label'=>'Разворачивать максимум', 'width' => '20px', 'comment' => 'уровней (0 - без ограничений)', 'default' => 0),
+				array('type'=>'edit','name'=>'expandLevelAuto','label'=>'Всегда показывать',
+					'width' => '20px', 'comment' => 'уровней (0 - развернуть все)', 'default' => 0),
+				array('type'=>'edit','name'=>'expandLevelMax','label'=>'Разворачивать максимум',
+					'width' => '20px', 'comment' => 'уровней (0 - без ограничений)', 'default' => 0),
 				array('type'=>'checkbox','name'=>'invisible','label'=>'Показывать скрытые разделы'),
 				array('type'=>'header', 'value'=>'Шаблоны'),
-				array('type'=>'memo','name'=>'tmplList','label'=>'Шаблон блока одного уровня меню', 'height' => '3'),
-				array('type'=>'text', 'value' => 'Макросы:<ul><li><b><li><b>$(level)</b> - номер текущего уровня</li><li><b>$(items)</b> - пункты меню</li></ul>'),
-				array('type'=>'edit','name'=>'glue','label'=>'Разделитель пунктов', 'width' => '100%', 'maxlength' => 255),
+				array('type'=>'memo','name'=>'tmplList','label'=>'Шаблон блока одного уровня меню',
+					'height' => '3'),
+				array('type'=>'text', 'value' => 'Макросы:<ul><li><b><li><b>$(level)</b> - номер текущего '.
+					'уровня</li><li><b>$(items)</b> - пункты меню</li></ul>'),
+				array('type'=>'edit','name'=>'glue','label'=>'Разделитель пунктов', 'width' => '100%',
+					'maxlength' => 255),
 				array('type'=>'memo','name'=>'tmplItem','label'=>'Шаблон пункта меню', 'height' => '3'),
-				array('type'=>'memo','name'=>'tmplSpecial','label'=>'Специальный шаблон пункта меню', 'height' => '3'),
+				array('type'=>'memo','name'=>'tmplSpecial','label'=>'Специальный шаблон пункта меню',
+					'height' => '3'),
 				array('type'=>'text', 'value' => 'Использовать специальный шаблон'),
 				array('type'=>'select','name'=>'specialMode','items'=>array(
 					'нет',
@@ -417,7 +489,8 @@ class TMenus extends TListContentPlugin
 					'для пунктов, имеющих подпункты'
 					)
 				),
-				array('type'=>'edit','name'=>'counterReset','label'=>'Сбрасывать счётчик на', 'width' => '20px', 'comment' => '0 - не сбрасывать'),
+				array('type'=>'edit','name'=>'counterReset','label'=>'Сбрасывать счётчик на',
+					'width' => '20px', 'comment' => '0 - не сбрасывать'),
 				array('type'=>'divider'),
 				array('type'=>'text', 'value' =>
 					'Макросы:<ul>'.
@@ -426,11 +499,14 @@ class TMenus extends TListContentPlugin
 					'<li><b>$(counter)</b> - порядковый номер текущего пункта</li>'.
 					'<li><b>$(url)</b> - ссылка</li>'.
 					'<li><b>$(submenu)</b> - место для вставки подменю</li>'.
-					'<li><b>{%selected?строка1:строка2}</b> - если элемент выбран, вставить строка1, иначе строка2</li>'.
-					'<li><b>{%parent?строка1:строка2}</b> - если элемент находится среди родительских разделов выбранного элемента, вставить строка1, иначе строка2</li>'.
+					'<li><b>{%selected?строка1:строка2}</b> - если элемент выбран, вставить строка1, '.
+						'иначе строка2</li>'.
+					'<li><b>{%parent?строка1:строка2}</b> - если элемент находится среди '.
+						'родительских разделов выбранного элемента, вставить строка1, иначе строка2</li>'.
 					'</ul>'),
 				array('type'=>'divider'),
-				array('type'=>'text', 'value' => 'Для вставки меню используйте макрос <b>$(Menus:имя_меню)</b>'),
+				array('type'=>'text', 'value' =>
+					'Для вставки меню используйте макрос <b>$(Menus:имя_меню)</b>'),
 			),
 			'buttons' => array('ok', 'apply', 'cancel'),
 		);
@@ -438,8 +514,9 @@ class TMenus extends TListContentPlugin
 		return $result;
 	}
 	//------------------------------------------------------------------------------
+
 	/**
-	 * Вывод АТ плагина
+	 * Вывод АИ плагина
 	 *
 	 * @return string
 	 */
@@ -449,6 +526,7 @@ class TMenus extends TListContentPlugin
 		return $result;
 	}
 	//------------------------------------------------------------------------------
+
 	/**
 	 * Сбор информации о текущем разделе
 	 *
@@ -461,6 +539,7 @@ class TMenus extends TListContentPlugin
 		$this->ids[] = $item['id'];
 	}
 	//------------------------------------------------------------------------------
+
 	/**
 	 * Поиск и подстановка меню
 	 *
@@ -475,18 +554,29 @@ class TMenus extends TListContentPlugin
 		$delta = 0;
 
 		$relative = substr($Eresus->request['url'], strlen($Eresus->root), 5);
-		if ($relative && $relative != 'main/') array_shift($this->ids);
-		for($i = 0; $i < count($menus); $i++) {
-			$this->menu = $Eresus->db->selectItem($this->table['name'], "`name`='".$menus[$i][1][0]."' AND `active` = 1");
+
+		if ($relative && $relative != 'main/')
+			array_shift($this->ids);
+
+		for($i = 0; $i < count($menus); $i++)
+		{
+			$this->menu = $Eresus->db->selectItem($this->table['name'],
+				"`name`='".$menus[$i][1][0]."' AND `active` = 1");
 			if (!is_null($this->menu)) {
-				if ($this->menu['root'] == -1 && $this->menu['rootLevel']) {
+				if ($this->menu['root'] == -1 && $this->menu['rootLevel'])
+				{
 					$parents = $Eresus->sections->parents($page->id);
 					$level = count($parents);
-					if ($level == $this->menu['rootLevel']) $this->menu['root'] = -1;
-					elseif ($level > $this->menu['rootLevel']) $this->menu['root'] = $this->menu['root'] = $parents[$this->menu['rootLevel']];
-					else $this->menu['root'] = -2;
+					if ($level == $this->menu['rootLevel'])
+						$this->menu['root'] = -1;
+					elseif ($level > $this->menu['rootLevel'])
+						$this->menu['root'] = $this->menu['root'] = $parents[$this->menu['rootLevel']];
+					else
+						$this->menu['root'] = -2;
 				}
-				$path = $this->menu['root'] > -1 ? $page->clientURL($this->menu['root']) : $Eresus->request['path'];
+				$path = $this->menu['root'] > -1 ?
+					$page->clientURL($this->menu['root']) :
+					$Eresus->request['path'];
 				$menu = $this->menuBranch($this->menu['root'], $path);
 				$text = substr_replace($text, $menu, $menus[$i][0][1]+$delta, strlen($menus[$i][0][0]));
 				$delta += strlen($menu) - strlen($menus[$i][0][0]);
@@ -495,6 +585,7 @@ class TMenus extends TListContentPlugin
 		return $text;
 	}
 	//------------------------------------------------------------------------------
+
   /**
    * Добавление пункта в меню "Расширения"
    */
@@ -502,7 +593,8 @@ class TMenus extends TListContentPlugin
 	{
 		global $page;
 
-		$page->addMenuItem(admExtensions, array ('access'  => ADMIN, 'link'  => $this->name, 'caption'  => $this->title, 'hint'  => $this->description));
+		$page->addMenuItem(admExtensions, array ('access'  => ADMIN, 'link'  => $this->name,
+			'caption'  => $this->title, 'hint'  => $this->description));
 	}
 	//------------------------------------------------------------------------------
 }
