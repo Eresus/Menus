@@ -33,20 +33,43 @@
  *
  * @package Menus
  */
-//class TMenus extends TListContentPlugin
 class Menus extends Plugin
 {
-	var $title = 'Управление меню';
-	var $type = 'client,admin';
-	var $version = '2.00a';
+	/**
+	 * Название плагина
+	 *
+	 * @var string
+	 */
+	public $title = 'Управление меню';
+
+	/**
+	 * Тип плагина
+	 *
+	 * @var string
+	 */
+	public $type = 'client,admin';
+
+	/**
+	 * Версия плагина
+	 *
+	 * @var string
+	 */
+	public $version = '2.00a';
 
 	/**
 	 * Требуемая версия ядра
 	 * @var string
 	 */
-	var $kernel = '2.12';
-	var $description = 'Менеджер меню';
-	var $table = array (
+	public $kernel = '2.12';
+
+	/**
+	 * Описание плагина
+	 *
+	 * @var string
+	 */
+	public $description = 'Менеджер меню';
+
+	private $table = array (
 		'name' => 'menus',
 		'key'=> 'id',
 		'sortMode' => 'id',
@@ -87,7 +110,8 @@ class Menus extends Plugin
 			KEY `active` (`active`)
 		) TYPE=MyISAM COMMENT='Menu collection';",
 	);
-	var $settings = array(
+
+	public $settings = array(
 	);
 
 	/**
@@ -95,15 +119,14 @@ class Menus extends Plugin
 	 * @var array
 	 */
 	private $menu = null;
-	var $pages = array(); # Путь по страницам
-	var $ids = array(); # Путь по страницам (только идентификаторы)
+
+	private $pages = array(); # Путь по страницам
+	private $ids = array(); # Путь по страницам (только идентификаторы)
 
  /**
 	* Конструктор
 	*
-	* @return TMenus
-	*
-	* @uses Eresus
+	* @return Menus
 	*/
 	public function __construct()
 	{
