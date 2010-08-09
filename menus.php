@@ -2,11 +2,9 @@
 /**
  * Menus
  *
- * Eresus 2.12
- *
  * Óïğàâëåíèå ìåíş
  *
- * @version 1.05
+ * @version 2.00
  *
  * @copyright 2007, Eresus Group, http://eresus.ru/
  * @copyright 2010, ÎÎÎ "Äâà ñëîíà", http://dvaslona.ru/
@@ -35,20 +33,43 @@
  *
  * @package Menus
  */
-class TMenus extends TListContentPlugin
+class Menus extends Plugin
 {
-	var $name = 'menus';
-	var $title = 'Óïğàâëåíèå ìåíş';
-	var $type = 'client,admin';
-	var $version = '1.05';
+	/**
+	 * Íàçâàíèå ïëàãèíà
+	 *
+	 * @var string
+	 */
+	public $title = 'Óïğàâëåíèå ìåíş';
+
+	/**
+	 * Òèï ïëàãèíà
+	 *
+	 * @var string
+	 */
+	public $type = 'client,admin';
+
+	/**
+	 * Âåğñèÿ ïëàãèíà
+	 *
+	 * @var string
+	 */
+	public $version = '2.00b';
 
 	/**
 	 * Òğåáóåìàÿ âåğñèÿ ÿäğà
 	 * @var string
 	 */
-	var $kernel = '2.12';
-	var $description = 'Ìåíåäæåğ ìåíş';
-	var $table = array (
+	public $kernel = '2.12';
+
+	/**
+	 * Îïèñàíèå ïëàãèíà
+	 *
+	 * @var string
+	 */
+	public $description = 'Ìåíåäæåğ ìåíş';
+
+	private $table = array (
 		'name' => 'menus',
 		'key'=> 'id',
 		'sortMode' => 'id',
@@ -89,7 +110,8 @@ class TMenus extends TListContentPlugin
 			KEY `active` (`active`)
 		) TYPE=MyISAM COMMENT='Menu collection';",
 	);
-	var $settings = array(
+
+	public $settings = array(
 	);
 
 	/**
@@ -97,24 +119,19 @@ class TMenus extends TListContentPlugin
 	 * @var array
 	 */
 	private $menu = null;
-	var $pages = array(); # Ïóòü ïî ñòğàíèöàì
-	var $ids = array(); # Ïóòü ïî ñòğàíèöàì (òîëüêî èäåíòèôèêàòîğû)
+
+	private $pages = array(); # Ïóòü ïî ñòğàíèöàì
+	private $ids = array(); # Ïóòü ïî ñòğàíèöàì (òîëüêî èäåíòèôèêàòîğû)
 
  /**
 	* Êîíñòğóêòîğ
 	*
-	* @return TMenus
-	*
-	* @uses Eresus
+	* @return Menus
 	*/
 	public function __construct()
 	{
-		global $Eresus;
-
 		parent::__construct();
-		$Eresus->plugins->events['clientOnURLSplit'][] = $this->name;
-		$Eresus->plugins->events['clientOnPageRender'][] = $this->name;
-		$Eresus->plugins->events['adminOnMenuRender'][] = $this->name;
+		$this->listenEvents('clientOnURLSplit', 'clientOnPageRender', 'adminOnMenuRender');
 	}
 	//------------------------------------------------------------------------------
 
@@ -124,7 +141,6 @@ class TMenus extends TListContentPlugin
 	* @return void
 	*
 	* @uses Eresus
-	* @uses sendNotify
 	* @uses HTTP::redirect
 	* @uses arg
 	*/
@@ -150,7 +166,6 @@ class TMenus extends TListContentPlugin
 		);
 
 		$Eresus->db->insert($this->table['name'], $item);
-		sendNotify('Äîáàâëåíî ìåíş: '.$item['caption']);
 		HTTP::redirect(arg('submitURL'));
 	}
 	//------------------------------------------------------------------------------
@@ -161,7 +176,6 @@ class TMenus extends TListContentPlugin
 	 * @return void
 	 *
 	 * @uses Eresus
-	 * @uses sendNotify
 	 * @uses HTTP::redirect
 	 * @uses arg
 	 */
@@ -186,7 +200,6 @@ class TMenus extends TListContentPlugin
 		$item['counterReset'] = arg('counterReset', 'int');
 
 		$Eresus->db->updateItem($this->table['name'], $item, "`id`='".$item['id']."'");
-		sendNotify('Èçìåíåíî ìåíş: '.$item['caption']);
 		HTTP::redirect(arg('submitURL'));
 	}
 	//------------------------------------------------------------------------------
@@ -597,4 +610,82 @@ class TMenus extends TListContentPlugin
 			'caption'  => $this->title, 'hint'  => $this->description));
 	}
 	//------------------------------------------------------------------------------
+
+	function install()
+	{
+		$this->createTable($this->table);
+		parent::install();
+	}
+
+	function createTable($table)
+	{
+		global $Eresus;
+
+		$Eresus->db->query('CREATE TABLE IF NOT EXISTS `'.$Eresus->db->prefix.$table['name'].'`'.$table['sql']);
+	}
+
+	function adminRenderContent()
+	{
+	global $Eresus, $page;
+
+		$result = '';
+		if (!is_null(arg('id'))) {
+			$item = $Eresus->db->selectItem($this->table['name'], "`".$this->table['key']."` = '".arg('id', 'dbsafe')."'");
+			$page->title .= empty($item['caption'])?'':' - '.$item['caption'];
+		}
+		switch (true) {
+			case !is_null(arg('update')) && isset($this->table['controls']['edit']):
+				if (method_exists($this, 'update')) $result = $this->update(); else ErrorMessage(sprintf(errMethodNotFound, 'update', get_class($this)));
+			break;
+			case !is_null(arg('toggle')) && isset($this->table['controls']['toggle']):
+				if (method_exists($this, 'toggle')) $result = $this->toggle(arg('toggle', 'dbsafe')); else ErrorMessage(sprintf(errMethodNotFound, 'toggle', get_class($this)));
+			break;
+			case !is_null(arg('delete')) && isset($this->table['controls']['delete']):
+				if (method_exists($this, 'delete')) $result = $this->delete(arg('delete', 'dbsafe')); else ErrorMessage(sprintf(errMethodNotFound, 'delete', get_class($this)));
+			break;
+			case !is_null(arg('up')) && isset($this->table['controls']['position']):
+				if (method_exists($this, 'up')) $result = $this->table['sortDesc']?$this->down(arg('up', 'dbsafe')):$this->up(arg('up', 'dbsafe')); else ErrorMessage(sprintf(errMethodNotFound, 'up', get_class($this)));
+			break;
+			case !is_null(arg('down')) && isset($this->table['controls']['position']):
+				if (method_exists($this, 'down')) $result = $this->table['sortDesc']?$this->up(arg('down', 'dbsafe')):$this->down(arg('down', 'dbsafe')); else ErrorMessage(sprintf(errMethodNotFound, 'down', get_class($this)));
+			break;
+			case !is_null(arg('id')) && isset($this->table['controls']['edit']):
+				if (method_exists($this, 'adminEditItem')) $result = $this->adminEditItem(); else ErrorMessage(sprintf(errMethodNotFound, 'adminEditItem', get_class($this)));
+			break;
+			case !is_null(arg('action')):
+				switch (arg('action')) {
+					case 'create': if (isset($this->table['controls']['edit']))
+						if (method_exists($this, 'adminAddItem')) $result = $this->adminAddItem();
+						else ErrorMessage(sprintf(errMethodNotFound, 'adminAddItem', get_class($this)));
+					break;
+					case 'insert':
+						if (method_exists($this, 'insert')) $result = $this->insert();
+						else ErrorMessage(sprintf(errMethodNotFound, 'insert', get_class($this)));
+					break;
+				}
+			break;
+			default:
+				if (!is_null(arg('section'))) $this->table['condition'] = "`section`='".arg('section', 'int')."'";
+				$result = $page->renderTable($this->table);
+		}
+		return $result;
+	}
+
+	function toggle($id)
+	{
+		global $Eresus, $page;
+
+		$Eresus->db->update($this->table['name'], "`active` = NOT `active`", "`".$this->table['key']."`='".$id."'");
+		$item = $Eresus->db->selectItem($this->table['name'], "`".$this->table['key']."`='".$id."'");
+		HTTP::redirect(str_replace('&amp;', '&', $page->url()));
+	}
+
+	function delete($id)
+	{
+		global $Eresus, $page;
+
+		$item = $Eresus->db->selectItem($this->table['name'], "`".$this->table['key']."`='".$id."'");
+		$Eresus->db->delete($this->table['name'], "`".$this->table['key']."`='".$id."'");
+		HTTP::redirect(str_replace('&amp;', '&', $page->url()));
+	}
 }
