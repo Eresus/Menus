@@ -4,7 +4,7 @@
  *
  * Управление меню
  *
- * @version 2.00
+ * @version 2.01
  *
  * @copyright 2007, Eresus Group, http://eresus.ru/
  * @copyright 2010, ООО "Два слона", http://dvaslona.ru/
@@ -54,7 +54,7 @@ class Menus extends Plugin
 	 *
 	 * @var string
 	 */
-	public $version = '2.00a';
+	public $version = '2.01a';
 
 	/**
 	 * Требуемая версия ядра
@@ -671,14 +671,31 @@ class Menus extends Plugin
 		return $result;
 	}
 
-	function toggle($id)
+	/**
+	 * Обрабатывает запрос на переключение активности меню
+	 *
+	 * @param int $id  ID меню
+	 *
+	 * @return void
+	 *
+	 * @uses DB::getHandler
+	 * @uses DB::execute
+	 * @uses HTTP::redirect
+	 */
+	private function toggle($id)
 	{
-		global $Eresus, $page;
+		global $page;
 
-		$Eresus->db->update($this->table['name'], "`active` = NOT `active`", "`".$this->table['key']."`='".$id."'");
-		$item = $Eresus->db->selectItem($this->table['name'], "`".$this->table['key']."`='".$id."'");
+		$q = DB::getHandler()->createUpdateQuery();
+		$e = $q->expr;
+		$q->update($this->table['name'])
+			->set('active', $e->not('active'))
+			->where($e->eq('id', $q->bindValue($id, null, PDO::PARAM_INT)));
+		DB::execute($q);
+
 		HTTP::redirect(str_replace('&amp;', '&', $page->url()));
 	}
+	//-----------------------------------------------------------------------------
 
 	function delete($id)
 	{
