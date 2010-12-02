@@ -422,11 +422,11 @@ class Menus extends Plugin
 			'fields' => array (
 				array('type'=>'hidden','name'=>'action', 'value'=>'insert'),
 				array('type'=>'edit','name'=>'name','label'=>'<b>Имя</b>', 'width' => '100px',
-					'comment' => 'для использования в макросах', 'pattern'=>'/[a-z]\w*/i',
+					'comment' => 'для использования в макросах', 'pattern'=>'/^[a-z]\w*$/i',
 					'errormsg'=>'Имя должно начинаться с буквы и может содержать только латинские буквы ' .
 					'и цифры'),
 				array('type'=>'edit','name'=>'caption','label'=>'<b>Название</b>', 'width' => '100%',
-					'hint' => 'Для внутреннего использования', 'pattern'=>'/.+/i',
+					'hint' => 'Для внутреннего использования', 'pattern'=>'/^.+$/',
 					'errormsg'=>'Название не может быть пустым'),
 				array('type'=>'select','name'=>'root','label'=>'Корневой раздел', 'values'=>$sections[1],
 					'items'=>$sections[0],
@@ -511,11 +511,11 @@ class Menus extends Plugin
 			'fields' => array (
 				array('type'=>'hidden','name'=>'update', 'value'=>$item['id']),
 				array('type'=>'edit','name'=>'name','label'=>'<b>Имя</b>', 'width' => '100px',
-					'comment' => 'для использования в макросах', 'pattern'=>'/[a-z]\w*/i',
+					'comment' => 'для использования в макросах', 'pattern'=>'/^[a-z]\w*$/i',
 					'errormsg'=>'Имя должно начинаться с буквы и может содержать только латинские буквы и ' .
 					'цифры'),
 				array('type'=>'edit','name'=>'caption','label'=>'<b>Название</b>', 'width' => '100%',
-					'hint' => 'Для внутреннего использования', 'pattern'=>'/.+/i',
+					'hint' => 'Для внутреннего использования', 'pattern'=>'/^.+$/',
 					'errormsg'=>'Название не может быть пустым'),
 				array('type'=>'select','name'=>'root','label'=>'Корневой раздел', 'values'=>$sections[1],
 					'items'=>$sections[0],
