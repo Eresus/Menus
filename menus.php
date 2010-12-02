@@ -775,7 +775,6 @@ class Menus extends Plugin
 	{
 		global $Eresus, $page;
 
-		$item = $Eresus->db->selectItem($this->table['name'], "`".$this->table['key']."`='".$id."'");
 		$Eresus->db->delete($this->table['name'], "`".$this->table['key']."`='".$id."'");
 		HTTP::redirect(str_replace('&amp;', '&', $page->url()));
 	}
