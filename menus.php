@@ -86,7 +86,7 @@ class Menus extends Plugin
 		'tabs' => array(
 			'width'=>'180px',
 			'items'=>array(
-			 array('caption'=>'Создать меню', 'name'=>'action', 'value'=>'create')
+				array('caption'=>'Создать меню', 'name'=>'action', 'value'=>'create')
 			),
 		),
 		'sql' => "(
@@ -123,11 +123,11 @@ class Menus extends Plugin
 	private $pages = array(); # Путь по страницам
 	private $ids = array(); # Путь по страницам (только идентификаторы)
 
- /**
-	* Конструктор
-	*
-	* @return Menus
-	*/
+	/**
+	 * Конструктор
+	 *
+	 * @return Menus
+	 */
 	public function __construct()
 	{
 		parent::__construct();
@@ -135,15 +135,15 @@ class Menus extends Plugin
 	}
 	//------------------------------------------------------------------------------
 
- /**
-	* Добавление меню
-	*
-	* @return void
-	*
-	* @uses Eresus
-	* @uses HTTP::redirect
-	* @uses arg
-	*/
+	/**
+	 * Добавление меню
+	 *
+	 * @return void
+	 *
+	 * @uses Eresus
+	 * @uses HTTP::redirect
+	 * @uses arg
+	 */
 	function insert()
 	{
 		global $Eresus;
@@ -216,14 +216,18 @@ class Menus extends Plugin
 	function replaceMacros($template, $item)
 	{
 		preg_match_all('|{%selected\?(.*?):(.*?)}|i', $template, $matches);
-		for($i = 0; $i < count($matches[0]); $i++)
+		for ($i = 0; $i < count($matches[0]); $i++)
+		{
 			$template = str_replace($matches[0][$i], $item['is-selected']?$matches[1][$i]:$matches[2][$i],
 				$template);
+		}
 
 		preg_match_all('|{%parent\?(.*?):(.*?)}|i', $template, $matches);
-		for($i = 0; $i < count($matches[0]); $i++)
+		for ($i = 0; $i < count($matches[0]); $i++)
+		{
 			$template = str_replace($matches[0][$i], $item['is-parent']?$matches[1][$i]:$matches[2][$i],
 				$template);
+		}
 
 		$template = parent::replaceMacros($template, $item);
 
@@ -246,13 +250,18 @@ class Menus extends Plugin
 
 		$result = array(array(), array());
 		$items = $Eresus->sections->children($owner, GUEST, SECTIONS_ACTIVE);
-		if (count($items)) foreach($items as $item) {
-			$result[0][] = str_repeat('- ', $level).$item['caption'];
-			$result[1][] = $item['id'];
-			$sub = $this->adminSectionBranch($item['id'], $level+1);
-			if (count($sub[0])) {
-				$result[0] = array_merge($result[0], $sub[0]);
-				$result[1] = array_merge($result[1], $sub[1]);
+		if (count($items))
+		{
+			foreach ($items as $item)
+			{
+				$result[0][] = str_repeat('- ', $level).$item['caption'];
+				$result[1][] = $item['id'];
+				$sub = $this->adminSectionBranch($item['id'], $level+1);
+				if (count($sub[0]))
+				{
+					$result[0] = array_merge($result[0], $sub[0]);
+					$result[1] = array_merge($result[1], $sub[1]);
+				}
 			}
 		}
 		return $result;
@@ -276,37 +285,45 @@ class Menus extends Plugin
 
 		$result = '';
 		if (strpos($path, httpRoot) !== false)
+		{
 			$path = substr($path, strlen(httpRoot));
+		}
 		if ($owner == -1)
+		{
 			$owner = $page->id;
+		}
 		$item = $Eresus->sections->get($owner);
 		if ($owner == 0 && $item && $item['name'] == 'main')
+		{
 			$path = 'main/';
+		}
 		# Определяем допустимый уровень доступа
 		$access = $Eresus->user['auth'] ? $Eresus->user['access'] : GUEST;
 		# Определяем условия фильтрации
 		$flags = SECTIONS_ACTIVE | ( $this->menu['invisible'] ? 0 : SECTIONS_VISIBLE );
 		$items = $Eresus->sections->children($owner, $access, $flags);
 
-		if (count($items)) {
-
+		if (count($items))
+		{
 			$result = array();
 			$counter = 1;
 
-			foreach($items as $item) {
-
+			foreach ($items as $item)
+			{
 				$template = $this->menu['tmplItem'];
 				/* У разделов типа 'url' собственный механизм построения URL */
-				if ($item['type'] == 'url') {
-
+				if ($item['type'] == 'url')
+				{
 					$item = $Eresus->sections->get($item['id']);
 					$item['url'] = $page->replaceMacros($item['content']);
-					if (substr($item['url'], 0, 1) == '/') $item['url'] = httpRoot.substr($item['url'], 1);
-
-				} else {
-
+					if (substr($item['url'], 0, 1) == '/')
+					{
+						$item['url'] = httpRoot.substr($item['url'], 1);
+					}
+				}
+				else
+				{
 					$item['url'] = httpRoot.$path.($item['name']=='main'?'':$item['name'].'/');
-
 				}
 
 				$item['level'] = $level;
@@ -323,29 +340,41 @@ class Menus extends Plugin
 				$notMaxAutoExpandLevel = !$this->menu['expandLevelAuto'] ||
 					$level < $this->menu['expandLevelAuto'];
 
-				if ($notMaxAutoExpandLevel || ($inSelectedBranch && $notMaxExpandLevel)) {
+				if ($notMaxAutoExpandLevel || ($inSelectedBranch && $notMaxExpandLevel))
+				{
 					$item['submenu'] = $this->menuBranch($item['id'], $path.$item['name'].'/', $level+1);
 				}
-				switch ($this->menu['specialMode']) {
+				switch ($this->menu['specialMode'])
+				{
 					case 0: # нет
 					break;
 					case 1: # только для выбранного пункта
-						if ($item['is-selected']) $template = $this->menu['tmplSpecial'];
+						if ($item['is-selected'])
+						{
+							$template = $this->menu['tmplSpecial'];
+						}
 					break;
 					case 2: # для выбранного пункта если выбран его подпункт
 						if (
 								(strpos($Eresus->request['path'], $page->clientURL($item['id'])) === 0) &&
 								$item['name'] != 'main'
 							)
+						{
 							$template = $this->menu['tmplSpecial'];
+						}
 					break;
 					case 3: # для пунктов, имеющих подпункты
 						if (count($Eresus->sections->branch_ids($item['id'])))
+						{
 							$template = $this->menu['tmplSpecial'];
+						}
 					break;
 				}
 				$item['counter'] = $counter++;
-				if ($this->menu['counterReset'] && $counter > $this->menu['counterReset']) $counter = 1;
+				if ($this->menu['counterReset'] && $counter > $this->menu['counterReset'])
+				{
+					$counter = 1;
+				}
 				$result[] = $this->replaceMacros($template, $item);
 
 			}
@@ -382,12 +411,14 @@ class Menus extends Plugin
 				array('type'=>'hidden','name'=>'action', 'value'=>'insert'),
 				array('type'=>'edit','name'=>'name','label'=>'<b>Имя</b>', 'width' => '100px',
 					'comment' => 'для использования в макросах', 'pattern'=>'/[a-z]\w*/i',
-					'errormsg'=>'Имя должно начинаться с буквы и может содержать только латинские буквы и цифры'),
+					'errormsg'=>'Имя должно начинаться с буквы и может содержать только латинские буквы ' .
+					'и цифры'),
 				array('type'=>'edit','name'=>'caption','label'=>'<b>Название</b>', 'width' => '100%',
 					'hint' => 'Для внутреннего использования', 'pattern'=>'/.+/i',
 					'errormsg'=>'Название не может быть пустым'),
 				array('type'=>'select','name'=>'root','label'=>'Корневой раздел', 'values'=>$sections[1],
-					'items'=>$sections[0], 'extra' =>'onchange="this.form.rootLevel.disabled = this.value != -1"'),
+					'items'=>$sections[0],
+					'extra' =>'onchange="this.form.rootLevel.disabled = this.value != -1"'),
 				array('type'=>'edit','name'=>'rootLevel','label'=>'Фикс. уровень', 'width' => '20px',
 					'comment' => '(0 - текущий уровень)', 'default' => 0, 'disabled' => true),
 				array('type'=>'checkbox','name'=>'invisible','label'=>'Показывать скрытые разделы'),
@@ -469,7 +500,8 @@ class Menus extends Plugin
 				array('type'=>'hidden','name'=>'update', 'value'=>$item['id']),
 				array('type'=>'edit','name'=>'name','label'=>'<b>Имя</b>', 'width' => '100px',
 					'comment' => 'для использования в макросах', 'pattern'=>'/[a-z]\w*/i',
-					'errormsg'=>'Имя должно начинаться с буквы и может содержать только латинские буквы и цифры'),
+					'errormsg'=>'Имя должно начинаться с буквы и может содержать только латинские буквы и ' .
+					'цифры'),
 				array('type'=>'edit','name'=>'caption','label'=>'<b>Название</b>', 'width' => '100%',
 					'hint' => 'Для внутреннего использования', 'pattern'=>'/.+/i',
 					'errormsg'=>'Название не может быть пустым'),
@@ -569,23 +601,32 @@ class Menus extends Plugin
 		$relative = substr($Eresus->request['url'], strlen($Eresus->root), 5);
 
 		if ($relative && $relative != 'main/')
+		{
 			array_shift($this->ids);
+		}
 
-		for($i = 0; $i < count($menus); $i++)
+		for ($i = 0; $i < count($menus); $i++)
 		{
 			$this->menu = $Eresus->db->selectItem($this->table['name'],
 				"`name`='".$menus[$i][1][0]."' AND `active` = 1");
-			if (!is_null($this->menu)) {
+			if (!is_null($this->menu))
+			{
 				if ($this->menu['root'] == -1 && $this->menu['rootLevel'])
 				{
 					$parents = $Eresus->sections->parents($page->id);
 					$level = count($parents);
 					if ($level == $this->menu['rootLevel'])
+					{
 						$this->menu['root'] = -1;
+					}
 					elseif ($level > $this->menu['rootLevel'])
+					{
 						$this->menu['root'] = $this->menu['root'] = $parents[$this->menu['rootLevel']];
+					}
 					else
+					{
 						$this->menu['root'] = -2;
+					}
 				}
 				$path = $this->menu['root'] > -1 ?
 					$page->clientURL($this->menu['root']) :
@@ -599,9 +640,9 @@ class Menus extends Plugin
 	}
 	//------------------------------------------------------------------------------
 
-  /**
-   * Добавление пункта в меню "Расширения"
-   */
+	/**
+	 * Добавление пункта в меню "Расширения"
+	 */
 	function adminOnMenuRender()
 	{
 		global $page;
@@ -611,61 +652,85 @@ class Menus extends Plugin
 	}
 	//------------------------------------------------------------------------------
 
+	/**
+	 * (non-PHPdoc)
+	 * @see Plugin::install()
+	 */
 	function install()
 	{
 		$this->createTable($this->table);
 		parent::install();
 	}
+	//-----------------------------------------------------------------------------
 
+	/**
+	 *
+	 * @param unknown_type $table
+	 *
+	 * @return void
+	 *
+	 * @since ?.??
+	 */
 	function createTable($table)
 	{
 		global $Eresus;
 
-		$Eresus->db->query('CREATE TABLE IF NOT EXISTS `'.$Eresus->db->prefix.$table['name'].'`'.$table['sql']);
+		$Eresus->db->query('CREATE TABLE IF NOT EXISTS `'.$Eresus->db->prefix.$table['name'].
+			'`'.$table['sql']);
 	}
+	//-----------------------------------------------------------------------------
 
 	function adminRenderContent()
 	{
-	global $Eresus, $page;
+		global $Eresus, $page;
 
 		$result = '';
-		if (!is_null(arg('id'))) {
-			$item = $Eresus->db->selectItem($this->table['name'], "`".$this->table['key']."` = '".arg('id', 'dbsafe')."'");
+		if (!is_null(arg('id')))
+		{
+			$item = $Eresus->db->selectItem($this->table['name'],
+				"`".$this->table['key']."` = '".arg('id', 'dbsafe')."'");
 			$page->title .= empty($item['caption'])?'':' - '.$item['caption'];
 		}
-		switch (true) {
-			case !is_null(arg('update')) && isset($this->table['controls']['edit']):
-				if (method_exists($this, 'update')) $result = $this->update(); else ErrorMessage(sprintf(errMethodNotFound, 'update', get_class($this)));
+		switch (true)
+		{
+			case !is_null(arg('update')):
+				$result = $this->update();
 			break;
-			case !is_null(arg('toggle')) && isset($this->table['controls']['toggle']):
-				if (method_exists($this, 'toggle')) $result = $this->toggle(arg('toggle', 'dbsafe')); else ErrorMessage(sprintf(errMethodNotFound, 'toggle', get_class($this)));
+			case !is_null(arg('toggle')):
+				$result = $this->toggle(arg('toggle', 'dbsafe'));
 			break;
-			case !is_null(arg('delete')) && isset($this->table['controls']['delete']):
-				if (method_exists($this, 'delete')) $result = $this->delete(arg('delete', 'dbsafe')); else ErrorMessage(sprintf(errMethodNotFound, 'delete', get_class($this)));
+			case !is_null(arg('delete')):
+				$result = $this->delete(arg('delete', 'dbsafe'));
 			break;
-			case !is_null(arg('up')) && isset($this->table['controls']['position']):
-				if (method_exists($this, 'up')) $result = $this->table['sortDesc']?$this->down(arg('up', 'dbsafe')):$this->up(arg('up', 'dbsafe')); else ErrorMessage(sprintf(errMethodNotFound, 'up', get_class($this)));
+			case !is_null(arg('up')):
+				$result = $this->table['sortDesc'] ?
+					$this->down(arg('up', 'dbsafe')) :
+					$this->up(arg('up', 'dbsafe'));
 			break;
-			case !is_null(arg('down')) && isset($this->table['controls']['position']):
-				if (method_exists($this, 'down')) $result = $this->table['sortDesc']?$this->up(arg('down', 'dbsafe')):$this->down(arg('down', 'dbsafe')); else ErrorMessage(sprintf(errMethodNotFound, 'down', get_class($this)));
+			case !is_null(arg('down')):
+				$result = $this->table['sortDesc'] ?
+					$this->up(arg('down', 'dbsafe')) :
+					$this->down(arg('down', 'dbsafe'));
 			break;
-			case !is_null(arg('id')) && isset($this->table['controls']['edit']):
-				if (method_exists($this, 'adminEditItem')) $result = $this->adminEditItem(); else ErrorMessage(sprintf(errMethodNotFound, 'adminEditItem', get_class($this)));
+			case !is_null(arg('id')):
+				$result = $this->adminEditItem();
 			break;
 			case !is_null(arg('action')):
-				switch (arg('action')) {
-					case 'create': if (isset($this->table['controls']['edit']))
-						if (method_exists($this, 'adminAddItem')) $result = $this->adminAddItem();
-						else ErrorMessage(sprintf(errMethodNotFound, 'adminAddItem', get_class($this)));
+				switch (arg('action'))
+				{
+					case 'create':
+						$result = $this->adminAddItem();
 					break;
 					case 'insert':
-						if (method_exists($this, 'insert')) $result = $this->insert();
-						else ErrorMessage(sprintf(errMethodNotFound, 'insert', get_class($this)));
+						$result = $this->insert();
 					break;
 				}
 			break;
 			default:
-				if (!is_null(arg('section'))) $this->table['condition'] = "`section`='".arg('section', 'int')."'";
+				if (!is_null(arg('section')))
+				{
+					$this->table['condition'] = "`section`='".arg('section', 'int')."'";
+				}
 				$result = $page->renderTable($this->table);
 		}
 		return $result;
@@ -697,6 +762,15 @@ class Menus extends Plugin
 	}
 	//-----------------------------------------------------------------------------
 
+	/**
+	 * Удаляет меню
+	 *
+	 * @param int $id  идентификатор удаляемого меню
+	 *
+	 * @return void
+	 *
+	 * @since ?.??
+	 */
 	function delete($id)
 	{
 		global $Eresus, $page;
@@ -705,4 +779,5 @@ class Menus extends Plugin
 		$Eresus->db->delete($this->table['name'], "`".$this->table['key']."`='".$id."'");
 		HTTP::redirect(str_replace('&amp;', '&', $page->url()));
 	}
+	//-----------------------------------------------------------------------------
 }
