@@ -165,6 +165,11 @@ class Menus extends Plugin
 			'counterReset' => arg('counterReset', 'int'),
 		);
 
+		if ($Eresus->db->selectItem($this->table['name'], "`name`='".$item['name']."'"))
+		{
+			ErrorMessage('ћеню с таким именем уже есть');
+			HTTP::goback();
+		}
 		$Eresus->db->insert($this->table['name'], $item);
 		HTTP::redirect(arg('submitURL'));
 	}
@@ -198,6 +203,13 @@ class Menus extends Plugin
 		$item['specialMode'] = arg('specialMode', 'dbsafe');
 		$item['invisible'] = arg('invisible', 'int');
 		$item['counterReset'] = arg('counterReset', 'int');
+
+		if ($Eresus->db->selectItem($this->table['name'],
+			"`name`='{$item['name']}' AND `id` <> {$item['id']}"))
+		{
+			ErrorMessage('ћеню с таким именем уже есть');
+			HTTP::goback();
+		}
 
 		$Eresus->db->updateItem($this->table['name'], $item, "`id`='".$item['id']."'");
 		HTTP::redirect(arg('submitURL'));
