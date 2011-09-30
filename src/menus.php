@@ -4,7 +4,7 @@
  *
  * Управление меню
  *
- * @version 2.02
+ * @version 2.03
  *
  * @copyright 2007, Eresus Group, http://eresus.ru/
  * @copyright 2010, ООО "Два слона", http://dvaslona.ru/
@@ -54,7 +54,7 @@ class Menus extends Plugin
 	 *
 	 * @var string
 	 */
-	public $version = '2.02a';
+	public $version = '2.03a';
 
 	/**
 	 * Требуемая версия ядра
