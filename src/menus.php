@@ -70,6 +70,14 @@ class Menus extends Plugin
 	public $description = 'Менеджер меню';
 
 	/**
+	 * Настройки
+	 *
+	 * @var array
+	 */
+	public $settings = array(
+	);
+
+	/**
 	 * Описание таблицы БД и списка меню
 	 *
 	 * @var array
@@ -117,14 +125,6 @@ class Menus extends Plugin
 	);
 
 	/**
-	 * Настройки
-	 *
-	 * @var array
-	 */
-	public $settings = array(
-	);
-
-	/**
 	 * Текущее обрабатываемое меню
 	 * @var array
 	 */
@@ -157,33 +157,189 @@ class Menus extends Plugin
 	//------------------------------------------------------------------------------
 
 	/**
-	 * Добавление меню
+	 * Вывод АИ плагина
+	 *
+	 * @return string  HTML
+	 */
+	public function adminRender()
+	{
+		global $Eresus, $page;
+
+		$result = '';
+		if (!is_null(arg('id')))
+		{
+			$item = $Eresus->db->selectItem($this->table['name'],
+				"`".$this->table['key']."` = '".arg('id', 'dbsafe')."'");
+			$page->title .= empty($item['caption'])?'':' - '.$item['caption'];
+		}
+		switch (true)
+		{
+			case !is_null(arg('update')):
+				$result = $this->update();
+			break;
+			case !is_null(arg('toggle')):
+				$result = $this->toggle(arg('toggle', 'dbsafe'));
+			break;
+			case !is_null(arg('delete')):
+				$result = $this->delete(arg('delete', 'dbsafe'));
+			break;
+			case !is_null(arg('up')):
+				$result = $this->table['sortDesc'] ?
+					$this->down(arg('up', 'dbsafe')) :
+					$this->up(arg('up', 'dbsafe'));
+			break;
+			case !is_null(arg('down')):
+				$result = $this->table['sortDesc'] ?
+					$this->up(arg('down', 'dbsafe')) :
+					$this->down(arg('down', 'dbsafe'));
+			break;
+			case !is_null(arg('id')):
+				$result = $this->adminEditItem();
+			break;
+			case !is_null(arg('action')):
+				switch (arg('action'))
+				{
+					case 'create':
+						$result = $this->adminAddItem();
+					break;
+					case 'insert':
+						$result = $this->insert();
+					break;
+				}
+			break;
+			default:
+				if (!is_null(arg('section')))
+				{
+					$this->table['condition'] = "`section`='".arg('section', 'int')."'";
+				}
+				$result = $page->renderTable($this->table);
+		}
+		return $result;
+	}
+	//------------------------------------------------------------------------------
+
+	/**
+	 * Сбор информации о текущем разделе
+	 *
+	 * @param array  $item
+	 * @param string $url
 	 *
 	 * @return void
-	 *
-	 * @uses Eresus
-	 * @uses HTTP::redirect()
-	 * @uses arg()
 	 */
-	public function insert()
+	public function clientOnURLSplit($item, $url)
+	{
+		$this->pages[] = $item;
+		$this->ids[] = $item['id'];
+		return;
+		$url = $url; // PHPMD hack
+	}
+	//------------------------------------------------------------------------------
+
+	/**
+	 * Поиск и подстановка меню
+	 *
+	 * @param string $text
+	 * @return string
+	 */
+	public function clientOnPageRender($text)
+	{
+		global $Eresus, $page;
+
+		preg_match_all('/\$\(Menus:(.+)?\)/Usi', $text, $menus, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
+		$delta = 0;
+
+		$relative = substr($Eresus->request['url'], strlen($Eresus->root), 5);
+
+		if ($relative && $relative != 'main/')
+		{
+			array_shift($this->ids);
+		}
+
+		for ($i = 0; $i < count($menus); $i++)
+		{
+			$this->menu = $Eresus->db->selectItem($this->table['name'],
+				"`name`='".$menus[$i][1][0]."' AND `active` = 1");
+			if (!is_null($this->menu))
+			{
+				if ($this->menu['root'] == -1 && $this->menu['rootLevel'])
+				{
+					$parents = $Eresus->sections->parents($page->id);
+					$level = count($parents);
+					if ($level == $this->menu['rootLevel'])
+					{
+						$this->menu['root'] = -1;
+					}
+					elseif ($level > $this->menu['rootLevel'])
+					{
+						$this->menu['root'] = $this->menu['root'] = $parents[$this->menu['rootLevel']];
+					}
+					else
+					{
+						$this->menu['root'] = -2;
+					}
+				}
+				$path = $this->menu['root'] > -1 ?
+					$page->clientURL($this->menu['root']) :
+					$Eresus->request['path'];
+				$menu = $this->menuBranch($this->menu['root'], $path);
+				$text = substr_replace($text, $menu, $menus[$i][0][1]+$delta, strlen($menus[$i][0][0]));
+				$delta += strlen($menu) - strlen($menus[$i][0][0]);
+			}
+		}
+		return $text;
+	}
+	//------------------------------------------------------------------------------
+
+	/**
+	 * Добавление пункта в меню "Расширения"
+	 */
+	public function adminOnMenuRender()
+	{
+		global $page;
+
+		$page->addMenuItem(admExtensions, array ('access'  => ADMIN, 'link'  => $this->name,
+			'caption'  => $this->title, 'hint'  => $this->description));
+	}
+	//------------------------------------------------------------------------------
+
+	/**
+	 * @see Plugin::install()
+	 */
+	public function install()
+	{
+		$this->createTable($this->table);
+		parent::install();
+	}
+	//-----------------------------------------------------------------------------
+
+	/**
+	* Добавление меню
+	*
+	* @return void
+	*
+	* @uses Eresus
+	* @uses HTTP::redirect()
+	* @uses arg()
+	*/
+	private function insert()
 	{
 		global $Eresus;
 
 		$item = array(
-			'name' => arg('name', 'word'),
-			'caption' => arg('caption', 'dbsafe'),
-			'active' => true,
-			'root' => arg('root', 'int'),
-			'rootLevel' => arg('rootLevel', 'int'),
-			'expandLevelAuto' => arg('expandLevelAuto', 'int'),
-			'expandLevelMax' => arg('expandLevelMax', 'int'),
-			'glue' => arg('glue', 'dbsafe'),
-			'tmplList' => arg('tmplList', 'dbsafe'),
-			'tmplItem' => arg('tmplItem', 'dbsafe'),
-			'tmplSpecial' => arg('tmplSpecial', 'dbsafe'),
-			'specialMode' => arg('specialMode', 'dbsafe'),
-			'invisible' => arg('invisible', 'int'),
-			'counterReset' => arg('counterReset', 'int'),
+				'name' => arg('name', 'word'),
+				'caption' => arg('caption', 'dbsafe'),
+				'active' => true,
+				'root' => arg('root', 'int'),
+				'rootLevel' => arg('rootLevel', 'int'),
+				'expandLevelAuto' => arg('expandLevelAuto', 'int'),
+				'expandLevelMax' => arg('expandLevelMax', 'int'),
+				'glue' => arg('glue', 'dbsafe'),
+				'tmplList' => arg('tmplList', 'dbsafe'),
+				'tmplItem' => arg('tmplItem', 'dbsafe'),
+				'tmplSpecial' => arg('tmplSpecial', 'dbsafe'),
+				'specialMode' => arg('specialMode', 'dbsafe'),
+				'invisible' => arg('invisible', 'int'),
+				'counterReset' => arg('counterReset', 'int'),
 		);
 
 		if ($Eresus->db->selectItem($this->table['name'], "`name`='".$item['name']."'"))
@@ -205,7 +361,7 @@ class Menus extends Plugin
 	 * @uses HTTP::redirect()
 	 * @uses arg()
 	 */
-	public function update()
+	private function update()
 	{
 		global $Eresus;
 
@@ -226,7 +382,7 @@ class Menus extends Plugin
 		$item['counterReset'] = arg('counterReset', 'int');
 
 		if ($Eresus->db->selectItem($this->table['name'],
-			"`name`='{$item['name']}' AND `id` <> {$item['id']}"))
+				"`name`='{$item['name']}' AND `id` <> {$item['id']}"))
 		{
 			ErrorMessage('Меню с таким именем уже есть');
 			HTTP::goback();
@@ -236,6 +392,241 @@ class Menus extends Plugin
 		HTTP::redirect(arg('submitURL'));
 	}
 	//------------------------------------------------------------------------------
+
+	/**
+	 * Диалог добавления меню
+	 *
+	 * @return string
+	 *
+	 * @uses TAdminUI
+	 */
+	private function adminAddItem()
+	{
+		global $page;
+
+		$sections = $this->adminSectionBranch();
+		array_unshift($sections[0], 'ТЕКУЩИЙ РАЗДЕЛ');
+		array_unshift($sections[1], -1);
+		array_unshift($sections[0], 'КОРЕНЬ');
+		array_unshift($sections[1], 0);
+
+		$form = array(
+				'name' => 'FormCreate',
+				'caption' => 'Создать меню',
+				'width' => '500px',
+				'fields' => array (
+		array('type'=>'hidden','name'=>'action', 'value'=>'insert'),
+		array('type'=>'edit','name'=>'name','label'=>'<b>Имя</b>', 'width' => '100px',
+						'comment' => 'для использования в макросах', 'pattern'=>'/^[a-z]\w*$/i',
+						'errormsg'=>'Имя должно начинаться с буквы и может содержать только латинские буквы ' .
+						'и цифры'),
+		array('type'=>'edit','name'=>'caption','label'=>'<b>Название</b>', 'width' => '100%',
+						'hint' => 'Для внутреннего использования', 'pattern'=>'/^.+$/',
+						'errormsg'=>'Название не может быть пустым'),
+		array('type'=>'select','name'=>'root','label'=>'Корневой раздел', 'values'=>$sections[1],
+						'items'=>$sections[0],
+						'extra' =>'onchange="this.form.rootLevel.disabled = this.value != -1"'),
+		array('type'=>'edit','name'=>'rootLevel','label'=>'Фикс. уровень', 'width' => '20px',
+						'comment' => '(0 - текущий уровень)', 'default' => 0, 'disabled' => true),
+		array('type'=>'checkbox','name'=>'invisible','label'=>'Показывать скрытые разделы'),
+		array('type'=>'header', 'value'=>'Уровни меню'),
+		array('type'=>'edit','name'=>'expandLevelAuto','label'=>'Всегда показывать',
+						'width' => '20px', 'comment' => 'уровней (0 - развернуть все)', 'default' => 0),
+		array('type'=>'edit','name'=>'expandLevelMax','label'=>'Разворачивать максимум',
+						'width' => '20px', 'comment' => 'уровней (0 - без ограничений)', 'default' => 0),
+		array('type'=>'header', 'value'=>'Шаблоны'),
+		array('type'=>'memo','name'=>'tmplList','label'=>'Шаблон блока одного уровня меню',
+						'height' => '3', 'default' => "<ul>\n\t$(items)\n</ul>"),
+		array('type'=>'text', 'value' => 'Макросы:<ul><li><b><li><b>$(level)</b> - номер текущего '.
+						'уровня</li><li><b>$(items)</b> - пункты меню</li></ul>'),
+		array('type'=>'edit','name'=>'glue','label'=>'Разделитель пунктов', 'width' => '100%',
+						'maxlength' => 255),
+		array('type'=>'memo','name'=>'tmplItem','label'=>'Шаблон пункта меню', 'height' => '3',
+						'default' => "<li><a href=\"$(url)\">$(caption)</a></li>"),
+		array('type'=>'memo','name'=>'tmplSpecial','label'=>'Специальный шаблон пункта меню',
+						'height' => '3',
+						'default' => "<li class=\"selected\"><a href=\"$(url)\">$(caption)</a></li>"),
+		array('type'=>'text', 'value' => 'Использовать специальный шаблон'),
+		array('type'=>'select','name'=>'specialMode','items'=>array(
+						'нет',
+						'только для выбранного пункта',
+						'для выбранного пункта если выбран его подпункт',
+						'для пунктов, имеющих подпункты'
+		)
+		),
+		array('type'=>'edit','name'=>'counterReset','label'=>'Сбрасывать счётчик на',
+						'width' => '20px', 'comment' => '0 - не сбрасывать', 'default' => 0),
+		array('type'=>'divider'),
+		array('type'=>'text', 'value' =>
+						'Макросы:<ul>'.
+						'<li><b>Все элементы страницы</b></li>'.
+						'<li><b>$(level)</b> - номер текущего уровня</li>'.
+						'<li><b>$(counter)</b> - порядковый номер текущего пункта</li>'.
+						'<li><b>$(url)</b> - ссылка</li>'.
+						'<li><b>$(submenu)</b> - место для вставки подменю</li>'.
+						'<li><b>{%selected?строка1:строка2}</b> - если элемент выбран, вставить строка1, '.
+							'иначе строка2</li>'.
+						'<li><b>{%parent?строка1:строка2}</b> - если элемент находится среди родительских '.
+							'разделов выбранного элемента, вставить строка1, иначе строка2</li>'.
+						'</ul>'),
+		array('type'=>'divider'),
+		array('type'=>'text',
+						'value' => 'Для вставки меню используйте макрос <b>$(Menus:имя_меню)</b>'),
+		),
+				'buttons' => array('ok', 'cancel'),
+		);
+		$result = $page->renderForm($form);
+
+		return $result;
+	}
+	//------------------------------------------------------------------------------
+
+	/**
+	 * Диалог изменения меню
+	 *
+	 * @return string
+	 *
+	 * @uses Eresus
+	 * @uses TAdminUI
+	 */
+	private function adminEditItem()
+	{
+		global $page, $Eresus;
+
+		$item = $Eresus->db->selectItem($this->table['name'], "`id`='".arg('id', 'int')."'");
+		$sections = $this->adminSectionBranch();
+		array_unshift($sections[0], 'ТЕКУЩИЙ РАЗДЕЛ');
+		array_unshift($sections[1], -1);
+		array_unshift($sections[0], 'КОРЕНЬ');
+		array_unshift($sections[1], 0);
+		$form = array(
+				'name' => 'FormEdit',
+				'caption' => 'Изменить меню',
+				'width' => '500px',
+				'fields' => array (
+		array('type'=>'hidden','name'=>'update', 'value'=>$item['id']),
+		array('type'=>'edit','name'=>'name','label'=>'<b>Имя</b>', 'width' => '100px',
+						'comment' => 'для использования в макросах', 'pattern'=>'/^[a-z]\w*$/i',
+						'errormsg'=>'Имя должно начинаться с буквы и может содержать только латинские буквы и ' .
+						'цифры'),
+		array('type'=>'edit','name'=>'caption','label'=>'<b>Название</b>', 'width' => '100%',
+						'hint' => 'Для внутреннего использования', 'pattern'=>'/^.+$/',
+						'errormsg'=>'Название не может быть пустым'),
+		array('type'=>'select','name'=>'root','label'=>'Корневой раздел', 'values'=>$sections[1],
+						'items'=>$sections[0],
+						'extra' =>'onchange="this.form.rootLevel.disabled = this.value != -1"'),
+		array('type'=>'edit','name'=>'rootLevel','label'=>'Фикс. уровень', 'width' => '20px',
+						'comment' => '(0 - текущий уровень)', 'default' => 0, 'disabled' => $item['root'] != -1),
+		array('type'=>'header', 'value'=>'Уровни меню'),
+		array('type'=>'edit','name'=>'expandLevelAuto','label'=>'Всегда показывать',
+						'width' => '20px', 'comment' => 'уровней (0 - развернуть все)', 'default' => 0),
+		array('type'=>'edit','name'=>'expandLevelMax','label'=>'Разворачивать максимум',
+						'width' => '20px', 'comment' => 'уровней (0 - без ограничений)', 'default' => 0),
+		array('type'=>'checkbox','name'=>'invisible','label'=>'Показывать скрытые разделы'),
+		array('type'=>'header', 'value'=>'Шаблоны'),
+		array('type'=>'memo','name'=>'tmplList','label'=>'Шаблон блока одного уровня меню',
+						'height' => '3'),
+		array('type'=>'text', 'value' => 'Макросы:<ul><li><b><li><b>$(level)</b> - номер текущего '.
+						'уровня</li><li><b>$(items)</b> - пункты меню</li></ul>'),
+		array('type'=>'edit','name'=>'glue','label'=>'Разделитель пунктов', 'width' => '100%',
+						'maxlength' => 255),
+		array('type'=>'memo','name'=>'tmplItem','label'=>'Шаблон пункта меню', 'height' => '3'),
+		array('type'=>'memo','name'=>'tmplSpecial','label'=>'Специальный шаблон пункта меню',
+						'height' => '3'),
+		array('type'=>'text', 'value' => 'Использовать специальный шаблон'),
+		array('type'=>'select','name'=>'specialMode','items'=>array(
+						'нет',
+						'только для выбранного пункта',
+						'для выбранного пункта если выбран его подпункт',
+						'для пунктов, имеющих подпункты'
+		)
+		),
+		array('type'=>'edit','name'=>'counterReset','label'=>'Сбрасывать счётчик на',
+						'width' => '20px', 'comment' => '0 - не сбрасывать'),
+		array('type'=>'divider'),
+		array('type'=>'text', 'value' =>
+						'Макросы:<ul>'.
+						'<li><b>Все элементы страницы</b></li>'.
+						'<li><b>$(level)</b> - номер текущего уровня</li>'.
+						'<li><b>$(counter)</b> - порядковый номер текущего пункта</li>'.
+						'<li><b>$(url)</b> - ссылка</li>'.
+						'<li><b>$(submenu)</b> - место для вставки подменю</li>'.
+						'<li><b>{%selected?строка1:строка2}</b> - если элемент выбран, вставить строка1, '.
+							'иначе строка2</li>'.
+						'<li><b>{%parent?строка1:строка2}</b> - если элемент находится среди '.
+							'родительских разделов выбранного элемента, вставить строка1, иначе строка2</li>'.
+						'</ul>'),
+		array('type'=>'divider'),
+		array('type'=>'text', 'value' =>
+						'Для вставки меню используйте макрос <b>$(Menus:имя_меню)</b>'),
+		),
+				'buttons' => array('ok', 'apply', 'cancel'),
+		);
+		$result = $page->renderForm($form, $item);
+		return $result;
+	}
+	//------------------------------------------------------------------------------
+
+	/**
+	 *
+	 * @param unknown_type $table
+	 *
+	 * @return void
+	 *
+	 * @since ?.??
+	 */
+	private function createTable($table)
+	{
+		global $Eresus;
+
+		$Eresus->db->query('CREATE TABLE IF NOT EXISTS `'.$Eresus->db->prefix.$table['name'].
+			'`'.$table['sql']);
+	}
+	//-----------------------------------------------------------------------------
+
+	/**
+	 * Обрабатывает запрос на переключение активности меню
+	 *
+	 * @param int $id  ID меню
+	 *
+	 * @return void
+	 *
+	 * @uses DB::getHandler
+	 * @uses DB::execute
+	 * @uses HTTP::redirect
+	 */
+	private function toggle($id)
+	{
+		global $page;
+
+		$q = DB::getHandler()->createUpdateQuery();
+		$e = $q->expr;
+		$q->update($this->table['name'])
+			->set('active', $e->not('active'))
+			->where($e->eq('id', $q->bindValue($id, null, PDO::PARAM_INT)));
+		DB::execute($q);
+
+		HTTP::redirect(str_replace('&amp;', '&', $page->url()));
+	}
+	//-----------------------------------------------------------------------------
+
+	/**
+	 * Удаляет меню
+	 *
+	 * @param int $id  идентификатор удаляемого меню
+	 *
+	 * @return void
+	 *
+	 * @since ?.??
+	 */
+	private function delete($id)
+	{
+		global $Eresus, $page;
+
+		$Eresus->db->delete($this->table['name'], "`".$this->table['key']."`='".$id."'");
+		HTTP::redirect(str_replace('&amp;', '&', $page->url()));
+	}
+	//-----------------------------------------------------------------------------
 
 	/**
 	 * Замена макросов
@@ -419,400 +810,4 @@ class Menus extends Plugin
 	}
 	//------------------------------------------------------------------------------
 
-	/**
-	 * Диалог добавления меню
-	 *
-	 * @return string
-	 *
-	 * @uses TAdminUI
-	 */
-	public function adminAddItem()
-	{
-		global $page;
-
-		$sections = $this->adminSectionBranch();
-		array_unshift($sections[0], 'ТЕКУЩИЙ РАЗДЕЛ');
-		array_unshift($sections[1], -1);
-		array_unshift($sections[0], 'КОРЕНЬ');
-		array_unshift($sections[1], 0);
-
-		$form = array(
-			'name' => 'FormCreate',
-			'caption' => 'Создать меню',
-			'width' => '500px',
-			'fields' => array (
-				array('type'=>'hidden','name'=>'action', 'value'=>'insert'),
-				array('type'=>'edit','name'=>'name','label'=>'<b>Имя</b>', 'width' => '100px',
-					'comment' => 'для использования в макросах', 'pattern'=>'/^[a-z]\w*$/i',
-					'errormsg'=>'Имя должно начинаться с буквы и может содержать только латинские буквы ' .
-					'и цифры'),
-				array('type'=>'edit','name'=>'caption','label'=>'<b>Название</b>', 'width' => '100%',
-					'hint' => 'Для внутреннего использования', 'pattern'=>'/^.+$/',
-					'errormsg'=>'Название не может быть пустым'),
-				array('type'=>'select','name'=>'root','label'=>'Корневой раздел', 'values'=>$sections[1],
-					'items'=>$sections[0],
-					'extra' =>'onchange="this.form.rootLevel.disabled = this.value != -1"'),
-				array('type'=>'edit','name'=>'rootLevel','label'=>'Фикс. уровень', 'width' => '20px',
-					'comment' => '(0 - текущий уровень)', 'default' => 0, 'disabled' => true),
-				array('type'=>'checkbox','name'=>'invisible','label'=>'Показывать скрытые разделы'),
-				array('type'=>'header', 'value'=>'Уровни меню'),
-				array('type'=>'edit','name'=>'expandLevelAuto','label'=>'Всегда показывать',
-					'width' => '20px', 'comment' => 'уровней (0 - развернуть все)', 'default' => 0),
-				array('type'=>'edit','name'=>'expandLevelMax','label'=>'Разворачивать максимум',
-					'width' => '20px', 'comment' => 'уровней (0 - без ограничений)', 'default' => 0),
-				array('type'=>'header', 'value'=>'Шаблоны'),
-				array('type'=>'memo','name'=>'tmplList','label'=>'Шаблон блока одного уровня меню',
-					'height' => '3', 'default' => "<ul>\n\t$(items)\n</ul>"),
-				array('type'=>'text', 'value' => 'Макросы:<ul><li><b><li><b>$(level)</b> - номер текущего '.
-					'уровня</li><li><b>$(items)</b> - пункты меню</li></ul>'),
-				array('type'=>'edit','name'=>'glue','label'=>'Разделитель пунктов', 'width' => '100%',
-					'maxlength' => 255),
-				array('type'=>'memo','name'=>'tmplItem','label'=>'Шаблон пункта меню', 'height' => '3',
-					'default' => "<li><a href=\"$(url)\">$(caption)</a></li>"),
-				array('type'=>'memo','name'=>'tmplSpecial','label'=>'Специальный шаблон пункта меню',
-					'height' => '3',
-					'default' => "<li class=\"selected\"><a href=\"$(url)\">$(caption)</a></li>"),
-				array('type'=>'text', 'value' => 'Использовать специальный шаблон'),
-				array('type'=>'select','name'=>'specialMode','items'=>array(
-					'нет',
-					'только для выбранного пункта',
-					'для выбранного пункта если выбран его подпункт',
-					'для пунктов, имеющих подпункты'
-					)
-				),
-				array('type'=>'edit','name'=>'counterReset','label'=>'Сбрасывать счётчик на',
-					'width' => '20px', 'comment' => '0 - не сбрасывать', 'default' => 0),
-				array('type'=>'divider'),
-				array('type'=>'text', 'value' =>
-					'Макросы:<ul>'.
-					'<li><b>Все элементы страницы</b></li>'.
-					'<li><b>$(level)</b> - номер текущего уровня</li>'.
-					'<li><b>$(counter)</b> - порядковый номер текущего пункта</li>'.
-					'<li><b>$(url)</b> - ссылка</li>'.
-					'<li><b>$(submenu)</b> - место для вставки подменю</li>'.
-					'<li><b>{%selected?строка1:строка2}</b> - если элемент выбран, вставить строка1, '.
-						'иначе строка2</li>'.
-					'<li><b>{%parent?строка1:строка2}</b> - если элемент находится среди родительских '.
-						'разделов выбранного элемента, вставить строка1, иначе строка2</li>'.
-					'</ul>'),
-				array('type'=>'divider'),
-				array('type'=>'text',
-					'value' => 'Для вставки меню используйте макрос <b>$(Menus:имя_меню)</b>'),
-			),
-			'buttons' => array('ok', 'cancel'),
-		);
-		$result = $page->renderForm($form);
-
-		return $result;
-	}
-	//------------------------------------------------------------------------------
-
-	/**
-	 * Диалог изменения меню
-	 *
-	 * @return string
-	 *
-	 * @uses Eresus
-	 * @uses TAdminUI
-	 */
-	public function adminEditItem()
-	{
-		global $page, $Eresus;
-
-		$item = $Eresus->db->selectItem($this->table['name'], "`id`='".arg('id', 'int')."'");
-		$sections = $this->adminSectionBranch();
-		array_unshift($sections[0], 'ТЕКУЩИЙ РАЗДЕЛ');
-		array_unshift($sections[1], -1);
-		array_unshift($sections[0], 'КОРЕНЬ');
-		array_unshift($sections[1], 0);
-		$form = array(
-			'name' => 'FormEdit',
-			'caption' => 'Изменить меню',
-			'width' => '500px',
-			'fields' => array (
-				array('type'=>'hidden','name'=>'update', 'value'=>$item['id']),
-				array('type'=>'edit','name'=>'name','label'=>'<b>Имя</b>', 'width' => '100px',
-					'comment' => 'для использования в макросах', 'pattern'=>'/^[a-z]\w*$/i',
-					'errormsg'=>'Имя должно начинаться с буквы и может содержать только латинские буквы и ' .
-					'цифры'),
-				array('type'=>'edit','name'=>'caption','label'=>'<b>Название</b>', 'width' => '100%',
-					'hint' => 'Для внутреннего использования', 'pattern'=>'/^.+$/',
-					'errormsg'=>'Название не может быть пустым'),
-				array('type'=>'select','name'=>'root','label'=>'Корневой раздел', 'values'=>$sections[1],
-					'items'=>$sections[0],
-					'extra' =>'onchange="this.form.rootLevel.disabled = this.value != -1"'),
-				array('type'=>'edit','name'=>'rootLevel','label'=>'Фикс. уровень', 'width' => '20px',
-					'comment' => '(0 - текущий уровень)', 'default' => 0, 'disabled' => $item['root'] != -1),
-				array('type'=>'header', 'value'=>'Уровни меню'),
-				array('type'=>'edit','name'=>'expandLevelAuto','label'=>'Всегда показывать',
-					'width' => '20px', 'comment' => 'уровней (0 - развернуть все)', 'default' => 0),
-				array('type'=>'edit','name'=>'expandLevelMax','label'=>'Разворачивать максимум',
-					'width' => '20px', 'comment' => 'уровней (0 - без ограничений)', 'default' => 0),
-				array('type'=>'checkbox','name'=>'invisible','label'=>'Показывать скрытые разделы'),
-				array('type'=>'header', 'value'=>'Шаблоны'),
-				array('type'=>'memo','name'=>'tmplList','label'=>'Шаблон блока одного уровня меню',
-					'height' => '3'),
-				array('type'=>'text', 'value' => 'Макросы:<ul><li><b><li><b>$(level)</b> - номер текущего '.
-					'уровня</li><li><b>$(items)</b> - пункты меню</li></ul>'),
-				array('type'=>'edit','name'=>'glue','label'=>'Разделитель пунктов', 'width' => '100%',
-					'maxlength' => 255),
-				array('type'=>'memo','name'=>'tmplItem','label'=>'Шаблон пункта меню', 'height' => '3'),
-				array('type'=>'memo','name'=>'tmplSpecial','label'=>'Специальный шаблон пункта меню',
-					'height' => '3'),
-				array('type'=>'text', 'value' => 'Использовать специальный шаблон'),
-				array('type'=>'select','name'=>'specialMode','items'=>array(
-					'нет',
-					'только для выбранного пункта',
-					'для выбранного пункта если выбран его подпункт',
-					'для пунктов, имеющих подпункты'
-					)
-				),
-				array('type'=>'edit','name'=>'counterReset','label'=>'Сбрасывать счётчик на',
-					'width' => '20px', 'comment' => '0 - не сбрасывать'),
-				array('type'=>'divider'),
-				array('type'=>'text', 'value' =>
-					'Макросы:<ul>'.
-					'<li><b>Все элементы страницы</b></li>'.
-					'<li><b>$(level)</b> - номер текущего уровня</li>'.
-					'<li><b>$(counter)</b> - порядковый номер текущего пункта</li>'.
-					'<li><b>$(url)</b> - ссылка</li>'.
-					'<li><b>$(submenu)</b> - место для вставки подменю</li>'.
-					'<li><b>{%selected?строка1:строка2}</b> - если элемент выбран, вставить строка1, '.
-						'иначе строка2</li>'.
-					'<li><b>{%parent?строка1:строка2}</b> - если элемент находится среди '.
-						'родительских разделов выбранного элемента, вставить строка1, иначе строка2</li>'.
-					'</ul>'),
-				array('type'=>'divider'),
-				array('type'=>'text', 'value' =>
-					'Для вставки меню используйте макрос <b>$(Menus:имя_меню)</b>'),
-			),
-			'buttons' => array('ok', 'apply', 'cancel'),
-		);
-		$result = $page->renderForm($form, $item);
-		return $result;
-	}
-	//------------------------------------------------------------------------------
-
-	/**
-	 * Вывод АИ плагина
-	 *
-	 * @return string
-	 */
-	public function adminRender()
-	{
-		$result = $this->adminRenderContent();
-		return $result;
-	}
-	//------------------------------------------------------------------------------
-
-	/**
-	 * Сбор информации о текущем разделе
-	 *
-	 * @param array  $item
-	 * @param string $url
-	 *
-	 * @return void
-	 */
-	public function clientOnURLSplit($item, $url)
-	{
-		$this->pages[] = $item;
-		$this->ids[] = $item['id'];
-		return;
-		$url = $url; // PHPMD hack
-	}
-	//------------------------------------------------------------------------------
-
-	/**
-	 * Поиск и подстановка меню
-	 *
-	 * @param string $text
-	 * @return string
-	 */
-	public function clientOnPageRender($text)
-	{
-		global $Eresus, $page;
-
-		preg_match_all('/\$\(Menus:(.+)?\)/Usi', $text, $menus, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
-		$delta = 0;
-
-		$relative = substr($Eresus->request['url'], strlen($Eresus->root), 5);
-
-		if ($relative && $relative != 'main/')
-		{
-			array_shift($this->ids);
-		}
-
-		for ($i = 0; $i < count($menus); $i++)
-		{
-			$this->menu = $Eresus->db->selectItem($this->table['name'],
-				"`name`='".$menus[$i][1][0]."' AND `active` = 1");
-			if (!is_null($this->menu))
-			{
-				if ($this->menu['root'] == -1 && $this->menu['rootLevel'])
-				{
-					$parents = $Eresus->sections->parents($page->id);
-					$level = count($parents);
-					if ($level == $this->menu['rootLevel'])
-					{
-						$this->menu['root'] = -1;
-					}
-					elseif ($level > $this->menu['rootLevel'])
-					{
-						$this->menu['root'] = $this->menu['root'] = $parents[$this->menu['rootLevel']];
-					}
-					else
-					{
-						$this->menu['root'] = -2;
-					}
-				}
-				$path = $this->menu['root'] > -1 ?
-					$page->clientURL($this->menu['root']) :
-					$Eresus->request['path'];
-				$menu = $this->menuBranch($this->menu['root'], $path);
-				$text = substr_replace($text, $menu, $menus[$i][0][1]+$delta, strlen($menus[$i][0][0]));
-				$delta += strlen($menu) - strlen($menus[$i][0][0]);
-			}
-		}
-		return $text;
-	}
-	//------------------------------------------------------------------------------
-
-	/**
-	 * Добавление пункта в меню "Расширения"
-	 */
-	public function adminOnMenuRender()
-	{
-		global $page;
-
-		$page->addMenuItem(admExtensions, array ('access'  => ADMIN, 'link'  => $this->name,
-			'caption'  => $this->title, 'hint'  => $this->description));
-	}
-	//------------------------------------------------------------------------------
-
-	/**
-	 * @see Plugin::install()
-	 */
-	public function install()
-	{
-		$this->createTable($this->table);
-		parent::install();
-	}
-	//-----------------------------------------------------------------------------
-
-	/**
-	 *
-	 * @param unknown_type $table
-	 *
-	 * @return void
-	 *
-	 * @since ?.??
-	 */
-	public function createTable($table)
-	{
-		global $Eresus;
-
-		$Eresus->db->query('CREATE TABLE IF NOT EXISTS `'.$Eresus->db->prefix.$table['name'].
-			'`'.$table['sql']);
-	}
-	//-----------------------------------------------------------------------------
-
-	public function adminRenderContent()
-	{
-		global $Eresus, $page;
-
-		$result = '';
-		if (!is_null(arg('id')))
-		{
-			$item = $Eresus->db->selectItem($this->table['name'],
-				"`".$this->table['key']."` = '".arg('id', 'dbsafe')."'");
-			$page->title .= empty($item['caption'])?'':' - '.$item['caption'];
-		}
-		switch (true)
-		{
-			case !is_null(arg('update')):
-				$result = $this->update();
-			break;
-			case !is_null(arg('toggle')):
-				$result = $this->toggle(arg('toggle', 'dbsafe'));
-			break;
-			case !is_null(arg('delete')):
-				$result = $this->delete(arg('delete', 'dbsafe'));
-			break;
-			case !is_null(arg('up')):
-				$result = $this->table['sortDesc'] ?
-					$this->down(arg('up', 'dbsafe')) :
-					$this->up(arg('up', 'dbsafe'));
-			break;
-			case !is_null(arg('down')):
-				$result = $this->table['sortDesc'] ?
-					$this->up(arg('down', 'dbsafe')) :
-					$this->down(arg('down', 'dbsafe'));
-			break;
-			case !is_null(arg('id')):
-				$result = $this->adminEditItem();
-			break;
-			case !is_null(arg('action')):
-				switch (arg('action'))
-				{
-					case 'create':
-						$result = $this->adminAddItem();
-					break;
-					case 'insert':
-						$result = $this->insert();
-					break;
-				}
-			break;
-			default:
-				if (!is_null(arg('section')))
-				{
-					$this->table['condition'] = "`section`='".arg('section', 'int')."'";
-				}
-				$result = $page->renderTable($this->table);
-		}
-		return $result;
-	}
-
-	/**
-	 * Обрабатывает запрос на переключение активности меню
-	 *
-	 * @param int $id  ID меню
-	 *
-	 * @return void
-	 *
-	 * @uses DB::getHandler
-	 * @uses DB::execute
-	 * @uses HTTP::redirect
-	 */
-	private function toggle($id)
-	{
-		global $page;
-
-		$q = DB::getHandler()->createUpdateQuery();
-		$e = $q->expr;
-		$q->update($this->table['name'])
-			->set('active', $e->not('active'))
-			->where($e->eq('id', $q->bindValue($id, null, PDO::PARAM_INT)));
-		DB::execute($q);
-
-		HTTP::redirect(str_replace('&amp;', '&', $page->url()));
-	}
-	//-----------------------------------------------------------------------------
-
-	/**
-	 * Удаляет меню
-	 *
-	 * @param int $id  идентификатор удаляемого меню
-	 *
-	 * @return void
-	 *
-	 * @since ?.??
-	 */
-	public function delete($id)
-	{
-		global $Eresus, $page;
-
-		$Eresus->db->delete($this->table['name'], "`".$this->table['key']."`='".$id."'");
-		HTTP::redirect(str_replace('&amp;', '&', $page->url()));
-	}
-	//-----------------------------------------------------------------------------
 }
