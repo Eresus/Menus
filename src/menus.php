@@ -69,6 +69,11 @@ class Menus extends Plugin
 	 */
 	public $description = 'Менеджер меню';
 
+	/**
+	 * Описание таблицы БД и списка меню
+	 *
+	 * @var array
+	 */
 	private $table = array (
 		'name' => 'menus',
 		'key'=> 'id',
@@ -111,6 +116,11 @@ class Menus extends Plugin
 		) TYPE=MyISAM COMMENT='Menu collection';",
 	);
 
+	/**
+	 * Настройки
+	 *
+	 * @var array
+	 */
 	public $settings = array(
 	);
 
@@ -120,8 +130,19 @@ class Menus extends Plugin
 	 */
 	private $menu = null;
 
-	private $pages = array(); # Путь по страницам
-	private $ids = array(); # Путь по страницам (только идентификаторы)
+	/**
+	 * Путь по разделам к текущему разделу
+	 *
+	 * @var array
+	 */
+	private $pages = array();
+
+	/**
+	 * Путь по разделам к текущему разделу (только идентификаторы)
+	 *
+	 * @var array
+	 */
+	private $ids = array();
 
 	/**
 	 * Конструктор
@@ -141,10 +162,10 @@ class Menus extends Plugin
 	 * @return void
 	 *
 	 * @uses Eresus
-	 * @uses HTTP::redirect
-	 * @uses arg
+	 * @uses HTTP::redirect()
+	 * @uses arg()
 	 */
-	function insert()
+	public function insert()
 	{
 		global $Eresus;
 
@@ -181,10 +202,10 @@ class Menus extends Plugin
 	 * @return void
 	 *
 	 * @uses Eresus
-	 * @uses HTTP::redirect
-	 * @uses arg
+	 * @uses HTTP::redirect()
+	 * @uses arg()
 	 */
-	function update()
+	public function update()
 	{
 		global $Eresus;
 
@@ -225,7 +246,7 @@ class Menus extends Plugin
 	 *
 	 * @see core/classes/backward/TPlugin#replaceMacros($template, $item)
 	 */
-	function replaceMacros($template, $item)
+	private function replaceMacros($template, $item)
 	{
 		preg_match_all('|{%selected\?(.*?):(.*?)}|i', $template, $matches);
 		for ($i = 0; $i < count($matches[0]); $i++)
@@ -256,7 +277,7 @@ class Menus extends Plugin
 	 *
 	 * @uses Eresus
 	 */
-	function adminSectionBranch($owner = 0, $level = 0)
+	private function adminSectionBranch($owner = 0, $level = 0)
 	{
 		global $Eresus;
 
@@ -291,7 +312,7 @@ class Menus extends Plugin
 	 * @uses Eresus
 	 * @uses TClientUI
 	 */
-	function menuBranch($owner = 0, $path = '', $level = 1)
+	private function menuBranch($owner = 0, $path = '', $level = 1)
 	{
 		global $Eresus, $page;
 
@@ -405,7 +426,7 @@ class Menus extends Plugin
 	 *
 	 * @uses TAdminUI
 	 */
-	function adminAddItem()
+	public function adminAddItem()
 	{
 		global $page;
 
@@ -494,7 +515,7 @@ class Menus extends Plugin
 	 * @uses Eresus
 	 * @uses TAdminUI
 	 */
-	function adminEditItem()
+	public function adminEditItem()
 	{
 		global $page, $Eresus;
 
@@ -577,7 +598,7 @@ class Menus extends Plugin
 	 *
 	 * @return string
 	 */
-	function adminRender()
+	public function adminRender()
 	{
 		$result = $this->adminRenderContent();
 		return $result;
@@ -589,11 +610,15 @@ class Menus extends Plugin
 	 *
 	 * @param array  $item
 	 * @param string $url
+	 *
+	 * @return void
 	 */
-	function clientOnURLSplit($item, $url)
+	public function clientOnURLSplit($item, $url)
 	{
 		$this->pages[] = $item;
 		$this->ids[] = $item['id'];
+		return;
+		$url = $url; // PHPMD hack
 	}
 	//------------------------------------------------------------------------------
 
@@ -603,7 +628,7 @@ class Menus extends Plugin
 	 * @param string $text
 	 * @return string
 	 */
-	function clientOnPageRender($text)
+	public function clientOnPageRender($text)
 	{
 		global $Eresus, $page;
 
@@ -655,7 +680,7 @@ class Menus extends Plugin
 	/**
 	 * Добавление пункта в меню "Расширения"
 	 */
-	function adminOnMenuRender()
+	public function adminOnMenuRender()
 	{
 		global $page;
 
@@ -665,10 +690,9 @@ class Menus extends Plugin
 	//------------------------------------------------------------------------------
 
 	/**
-	 * (non-PHPdoc)
 	 * @see Plugin::install()
 	 */
-	function install()
+	public function install()
 	{
 		$this->createTable($this->table);
 		parent::install();
@@ -683,7 +707,7 @@ class Menus extends Plugin
 	 *
 	 * @since ?.??
 	 */
-	function createTable($table)
+	public function createTable($table)
 	{
 		global $Eresus;
 
@@ -692,7 +716,7 @@ class Menus extends Plugin
 	}
 	//-----------------------------------------------------------------------------
 
-	function adminRenderContent()
+	public function adminRenderContent()
 	{
 		global $Eresus, $page;
 
@@ -783,7 +807,7 @@ class Menus extends Plugin
 	 *
 	 * @since ?.??
 	 */
-	function delete($id)
+	public function delete($id)
 	{
 		global $Eresus, $page;
 
