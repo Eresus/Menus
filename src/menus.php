@@ -705,12 +705,13 @@ class Menus extends Plugin
 	 */
 	private function menuBranch($owner = 0, $path = '', $level = 1)
 	{
-		global $Eresus, $page;
+		$Eresus = $GLOBALS['Eresus'];
+		$page = $GLOBALS['page'];
 
 		$result = '';
-		if (strpos($path, httpRoot) !== false)
+		if (strpos($path, $Eresus->root) !== false)
 		{
-			$path = substr($path, strlen(httpRoot));
+			$path = substr($path, strlen($Eresus->root));
 		}
 		if ($owner == -1)
 		{
@@ -742,12 +743,12 @@ class Menus extends Plugin
 					$item['url'] = $page->replaceMacros($item['content']);
 					if (substr($item['url'], 0, 1) == '/')
 					{
-						$item['url'] = httpRoot.substr($item['url'], 1);
+						$item['url'] = $Eresus->root . substr($item['url'], 1);
 					}
 				}
 				else
 				{
-					$item['url'] = httpRoot.$path.($item['name']=='main'?'':$item['name'].'/');
+					$item['url'] = $Eresus->root . $path.($item['name']=='main'?'':$item['name'].'/');
 				}
 
 				$item['level'] = $level;
