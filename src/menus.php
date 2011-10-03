@@ -370,6 +370,90 @@ class Menus extends Plugin
 	//------------------------------------------------------------------------------
 
 	/**
+	 * Создаёт заготовку для диалогов добавления/изменения меню
+	 *
+	 * @return array
+	 *
+	 * @since 2.03
+	 */
+	private function createDialogTemplate()
+	{
+		$sections = $this->adminSectionBranch();
+		array_unshift($sections[0], 'ТЕКУЩИЙ РАЗДЕЛ');
+		array_unshift($sections[1], -1);
+		array_unshift($sections[0], 'КОРЕНЬ');
+		array_unshift($sections[1], 0);
+
+		$form = array(
+			'name' => 'MenusForm',
+			'caption' => '',
+			'width' => '500px',
+			'fields' => array(
+				array('type' => 'edit', 'name' => 'name', 'label' => '<b>Имя</b>', 'width' => '100px',
+					'comment' => 'для использования в макросах', 'pattern'=>'/^[a-z]\w*$/i',
+					'errormsg'=>'Имя должно начинаться с буквы и может содержать только латинские буквы ' .
+					'и цифры'),
+				array('type' => 'edit', 'name' => 'caption', 'label' => '<b>Название</b>',
+					'width' => '100%', 'hint' => 'Для внутреннего использования', 'pattern'=>'/^.+$/',
+					'errormsg'=>'Название не может быть пустым'),
+				array('type' => 'select', 'name' => 'root', 'label' => 'Корневой раздел',
+					'values' => $sections[1], 'items' => $sections[0],
+					'extra' =>'onchange="this.form.rootLevel.disabled = this.value != -1"'),
+				array('type' =>'edit','name' => 'rootLevel', 'label' => 'Фикс. уровень', 'width' => '20px',
+					'comment' => '(0 - текущий уровень)', 'default' => 0, 'disabled' => true),
+				array('type' => 'checkbox', 'name' => 'invisible', 'label' => 'Показывать скрытые разделы'),
+				array('type' => 'header', 'value' => 'Уровни меню'),
+				array('type' => 'edit', 'name' => 'expandLevelAuto', 'label' => 'Всегда показывать',
+					'width' => '20px', 'comment' => 'уровней (0 - развернуть все)', 'default' => 0),
+				array('type' => 'edit', 'name' => 'expandLevelMax', 'label' => 'Разворачивать максимум',
+					'width' => '20px', 'comment' => 'уровней (0 - без ограничений)', 'default' => 0),
+				array('type' => 'header', 'value' => 'Шаблоны'),
+				array('type' => 'memo', 'name' => 'tmplList', 'label' => 'Шаблон блока одного уровня меню',
+					'height' => '3', 'default' => "<ul>\n\t$(items)\n</ul>"),
+				array('type' => 'text',
+					'value' => 'Макросы:<ul><li><b><li><b>$(level)</b> - номер текущего ' .
+					'уровня</li><li><b>$(items)</b> - пункты меню</li></ul>'),
+				array('type' => 'edit', 'name' => 'glue', 'label' => 'Разделитель пунктов',
+					'width' => '100%', 'maxlength' => 255),
+				array('type' => 'memo', 'name' => 'tmplItem', 'label' => 'Шаблон пункта меню',
+					'height' => '3', 'default' => "<li><a href=\"$(url)\">$(caption)</a>$(submenu)</li>"),
+				array('type' => 'memo', 'name' => 'tmplSpecial',
+					'label' => 'Специальный шаблон пункта меню', 'height' => '3',
+					'default' => "<li class=\"selected\"><a href=\"$(url)\">$(caption)</a>$(submenu)</li>"),
+				array('type' => 'text', 'value' => 'Использовать специальный шаблон'),
+				array('type' => 'select', 'name' => 'specialMode', 'items' => array(
+						'нет',
+						'только для выбранного пункта',
+						'для выбранного пункта если выбран его подпункт',
+						'для пунктов, имеющих подпункты'
+					)
+				),
+				array('type' => 'edit', 'name' => 'counterReset', 'label' => 'Сбрасывать счётчик на',
+					'width' => '20px', 'comment' => '0 - не сбрасывать', 'default' => 0),
+				array('type' => 'divider'),
+				array('type'=>'text', 'value' =>
+					'Макросы:<ul>'.
+					'<li><b>Все элементы страницы</b></li>'.
+					'<li><b>$(level)</b> - номер текущего уровня</li>'.
+					'<li><b>$(counter)</b> - порядковый номер текущего пункта</li>'.
+					'<li><b>$(url)</b> - ссылка</li>'.
+					'<li><b>$(submenu)</b> - место для вставки подменю</li>'.
+					'<li><b>{%selected?строка1:строка2}</b> - если элемент выбран, вставить строка1, '.
+						'иначе строка2</li>'.
+					'<li><b>{%parent?строка1:строка2}</b> - если элемент находится среди родительских '.
+						'разделов выбранного элемента, вставить строка1, иначе строка2</li>'.
+					'</ul>'),
+				array('type' => 'divider'),
+				array('type' => 'text',
+					'value' => 'Для вставки меню используйте макрос <b>$(Menus:имя_меню)</b>'),
+				),
+			'buttons' => array('ok', 'cancel'),
+		);
+		return $form;
+	}
+	//------------------------------------------------------------------------------
+
+	/**
 	 * Диалог добавления меню
 	 *
 	 * @return string
@@ -378,80 +462,11 @@ class Menus extends Plugin
 	 */
 	private function adminAddItem()
 	{
-		global $page;
+		$form = $this->createDialogTemplate();
 
-		$sections = $this->adminSectionBranch();
-		array_unshift($sections[0], 'ТЕКУЩИЙ РАЗДЕЛ');
-		array_unshift($sections[1], -1);
-		array_unshift($sections[0], 'КОРЕНЬ');
-		array_unshift($sections[1], 0);
-
-		$form = array(
-				'name' => 'FormCreate',
-				'caption' => 'Создать меню',
-				'width' => '500px',
-				'fields' => array (
-		array('type'=>'hidden','name'=>'action', 'value'=>'insert'),
-		array('type'=>'edit','name'=>'name','label'=>'<b>Имя</b>', 'width' => '100px',
-						'comment' => 'для использования в макросах', 'pattern'=>'/^[a-z]\w*$/i',
-						'errormsg'=>'Имя должно начинаться с буквы и может содержать только латинские буквы ' .
-						'и цифры'),
-		array('type'=>'edit','name'=>'caption','label'=>'<b>Название</b>', 'width' => '100%',
-						'hint' => 'Для внутреннего использования', 'pattern'=>'/^.+$/',
-						'errormsg'=>'Название не может быть пустым'),
-		array('type'=>'select','name'=>'root','label'=>'Корневой раздел', 'values'=>$sections[1],
-						'items'=>$sections[0],
-						'extra' =>'onchange="this.form.rootLevel.disabled = this.value != -1"'),
-		array('type'=>'edit','name'=>'rootLevel','label'=>'Фикс. уровень', 'width' => '20px',
-						'comment' => '(0 - текущий уровень)', 'default' => 0, 'disabled' => true),
-		array('type'=>'checkbox','name'=>'invisible','label'=>'Показывать скрытые разделы'),
-		array('type'=>'header', 'value'=>'Уровни меню'),
-		array('type'=>'edit','name'=>'expandLevelAuto','label'=>'Всегда показывать',
-						'width' => '20px', 'comment' => 'уровней (0 - развернуть все)', 'default' => 0),
-		array('type'=>'edit','name'=>'expandLevelMax','label'=>'Разворачивать максимум',
-						'width' => '20px', 'comment' => 'уровней (0 - без ограничений)', 'default' => 0),
-		array('type'=>'header', 'value'=>'Шаблоны'),
-		array('type'=>'memo','name'=>'tmplList','label'=>'Шаблон блока одного уровня меню',
-						'height' => '3', 'default' => "<ul>\n\t$(items)\n</ul>"),
-		array('type'=>'text', 'value' => 'Макросы:<ul><li><b><li><b>$(level)</b> - номер текущего '.
-						'уровня</li><li><b>$(items)</b> - пункты меню</li></ul>'),
-		array('type'=>'edit','name'=>'glue','label'=>'Разделитель пунктов', 'width' => '100%',
-						'maxlength' => 255),
-		array('type'=>'memo','name'=>'tmplItem','label'=>'Шаблон пункта меню', 'height' => '3',
-						'default' => "<li><a href=\"$(url)\">$(caption)</a></li>"),
-		array('type'=>'memo','name'=>'tmplSpecial','label'=>'Специальный шаблон пункта меню',
-						'height' => '3',
-						'default' => "<li class=\"selected\"><a href=\"$(url)\">$(caption)</a></li>"),
-		array('type'=>'text', 'value' => 'Использовать специальный шаблон'),
-		array('type'=>'select','name'=>'specialMode','items'=>array(
-						'нет',
-						'только для выбранного пункта',
-						'для выбранного пункта если выбран его подпункт',
-						'для пунктов, имеющих подпункты'
-		)
-		),
-		array('type'=>'edit','name'=>'counterReset','label'=>'Сбрасывать счётчик на',
-						'width' => '20px', 'comment' => '0 - не сбрасывать', 'default' => 0),
-		array('type'=>'divider'),
-		array('type'=>'text', 'value' =>
-						'Макросы:<ul>'.
-						'<li><b>Все элементы страницы</b></li>'.
-						'<li><b>$(level)</b> - номер текущего уровня</li>'.
-						'<li><b>$(counter)</b> - порядковый номер текущего пункта</li>'.
-						'<li><b>$(url)</b> - ссылка</li>'.
-						'<li><b>$(submenu)</b> - место для вставки подменю</li>'.
-						'<li><b>{%selected?строка1:строка2}</b> - если элемент выбран, вставить строка1, '.
-							'иначе строка2</li>'.
-						'<li><b>{%parent?строка1:строка2}</b> - если элемент находится среди родительских '.
-							'разделов выбранного элемента, вставить строка1, иначе строка2</li>'.
-						'</ul>'),
-		array('type'=>'divider'),
-		array('type'=>'text',
-						'value' => 'Для вставки меню используйте макрос <b>$(Menus:имя_меню)</b>'),
-		),
-				'buttons' => array('ok', 'cancel'),
-		);
-		$result = $page->renderForm($form);
+		$form['caption'] = 'Создать меню';
+		$form['fields'] []= array('type' => 'hidden', 'name' => 'action', 'value' => 'insert');
+		$result = $GLOBALS['page']->renderForm($form);
 
 		return $result;
 	}
@@ -467,78 +482,22 @@ class Menus extends Plugin
 	 */
 	private function adminEditItem()
 	{
-		global $page, $Eresus;
+		$item = $this->dbItem('', arg('id', 'int'));
 
-		$item = $Eresus->db->selectItem($this->table['name'], "`id`='".arg('id', 'int')."'");
-		$sections = $this->adminSectionBranch();
-		array_unshift($sections[0], 'ТЕКУЩИЙ РАЗДЕЛ');
-		array_unshift($sections[1], -1);
-		array_unshift($sections[0], 'КОРЕНЬ');
-		array_unshift($sections[1], 0);
-		$form = array(
-				'name' => 'FormEdit',
-				'caption' => 'Изменить меню',
-				'width' => '500px',
-				'fields' => array (
-		array('type'=>'hidden','name'=>'update', 'value'=>$item['id']),
-		array('type'=>'edit','name'=>'name','label'=>'<b>Имя</b>', 'width' => '100px',
-						'comment' => 'для использования в макросах', 'pattern'=>'/^[a-z]\w*$/i',
-						'errormsg'=>'Имя должно начинаться с буквы и может содержать только латинские буквы и ' .
-						'цифры'),
-		array('type'=>'edit','name'=>'caption','label'=>'<b>Название</b>', 'width' => '100%',
-						'hint' => 'Для внутреннего использования', 'pattern'=>'/^.+$/',
-						'errormsg'=>'Название не может быть пустым'),
-		array('type'=>'select','name'=>'root','label'=>'Корневой раздел', 'values'=>$sections[1],
-						'items'=>$sections[0],
-						'extra' =>'onchange="this.form.rootLevel.disabled = this.value != -1"'),
-		array('type'=>'edit','name'=>'rootLevel','label'=>'Фикс. уровень', 'width' => '20px',
-						'comment' => '(0 - текущий уровень)', 'default' => 0, 'disabled' => $item['root'] != -1),
-		array('type'=>'header', 'value'=>'Уровни меню'),
-		array('type'=>'edit','name'=>'expandLevelAuto','label'=>'Всегда показывать',
-						'width' => '20px', 'comment' => 'уровней (0 - развернуть все)', 'default' => 0),
-		array('type'=>'edit','name'=>'expandLevelMax','label'=>'Разворачивать максимум',
-						'width' => '20px', 'comment' => 'уровней (0 - без ограничений)', 'default' => 0),
-		array('type'=>'checkbox','name'=>'invisible','label'=>'Показывать скрытые разделы'),
-		array('type'=>'header', 'value'=>'Шаблоны'),
-		array('type'=>'memo','name'=>'tmplList','label'=>'Шаблон блока одного уровня меню',
-						'height' => '3'),
-		array('type'=>'text', 'value' => 'Макросы:<ul><li><b><li><b>$(level)</b> - номер текущего '.
-						'уровня</li><li><b>$(items)</b> - пункты меню</li></ul>'),
-		array('type'=>'edit','name'=>'glue','label'=>'Разделитель пунктов', 'width' => '100%',
-						'maxlength' => 255),
-		array('type'=>'memo','name'=>'tmplItem','label'=>'Шаблон пункта меню', 'height' => '3'),
-		array('type'=>'memo','name'=>'tmplSpecial','label'=>'Специальный шаблон пункта меню',
-						'height' => '3'),
-		array('type'=>'text', 'value' => 'Использовать специальный шаблон'),
-		array('type'=>'select','name'=>'specialMode','items'=>array(
-						'нет',
-						'только для выбранного пункта',
-						'для выбранного пункта если выбран его подпункт',
-						'для пунктов, имеющих подпункты'
-		)
-		),
-		array('type'=>'edit','name'=>'counterReset','label'=>'Сбрасывать счётчик на',
-						'width' => '20px', 'comment' => '0 - не сбрасывать'),
-		array('type'=>'divider'),
-		array('type'=>'text', 'value' =>
-						'Макросы:<ul>'.
-						'<li><b>Все элементы страницы</b></li>'.
-						'<li><b>$(level)</b> - номер текущего уровня</li>'.
-						'<li><b>$(counter)</b> - порядковый номер текущего пункта</li>'.
-						'<li><b>$(url)</b> - ссылка</li>'.
-						'<li><b>$(submenu)</b> - место для вставки подменю</li>'.
-						'<li><b>{%selected?строка1:строка2}</b> - если элемент выбран, вставить строка1, '.
-							'иначе строка2</li>'.
-						'<li><b>{%parent?строка1:строка2}</b> - если элемент находится среди '.
-							'родительских разделов выбранного элемента, вставить строка1, иначе строка2</li>'.
-						'</ul>'),
-		array('type'=>'divider'),
-		array('type'=>'text', 'value' =>
-						'Для вставки меню используйте макрос <b>$(Menus:имя_меню)</b>'),
-		),
-				'buttons' => array('ok', 'apply', 'cancel'),
-		);
-		$result = $page->renderForm($form, $item);
+		$form = $this->createDialogTemplate();
+		$form['caption'] = 'Изменить меню';
+		$form['fields'] []= array('type' => 'hidden', 'name' => 'update', 'value' => $item['id']);
+		$form['buttons'] = array('ok', 'apply', 'cancel');
+		foreach ($form['fields'] as &$field)
+		{
+			if ('rootLevel' == $field['name'])
+			{
+				$field['disabled'] = $item['root'] != -1;
+				break;
+			}
+		}
+
+		$result = $GLOBALS['page']->renderForm($form, $item);
 		return $result;
 	}
 	//------------------------------------------------------------------------------
