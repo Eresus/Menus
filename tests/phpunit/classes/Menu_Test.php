@@ -143,4 +143,32 @@ class Menu_Test extends PHPUnit_Framework_TestCase
 
 	}
 	//-----------------------------------------------------------------------------
+
+	/**
+	 * @link http://bugs.eresus.ru/view.php?id=676
+	 * @covers Menus_Menu::getTemplate
+	 */
+	public function test_issue676()
+	{
+		$m_getTemplate = new ReflectionMethod('Menus_Menu', 'getTemplate');
+		$m_getTemplate->setAccessible(true);
+
+		$GLOBALS['Eresus'] = new stdClass();
+		$GLOBALS['Eresus']->request = array('path' => 'http://example.org/');
+
+		$page = $this->getMock('stdClass', array('clientURL'));
+		$page->expects($this->once())->method('clientURL')->with(1)->
+			will($this->returnValue('http://example.org/main/'));
+		$GLOBALS['page'] = $page;
+
+		$params = array(
+			'specialMode' => 2,
+			'tmplItem' => 'foo',
+			'tmplSpecial' => 'bar',
+		);
+		$menu = new Menus_Menu($params, array('1'), '');
+		$item = array('id' => 1, 'owner' => 0, 'name' => 'main');
+		$this->assertEquals('bar', $m_getTemplate->invoke($menu, $item));
+	}
+	//-----------------------------------------------------------------------------
 }

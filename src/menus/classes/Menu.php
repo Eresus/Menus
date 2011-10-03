@@ -317,7 +317,9 @@ class Menus_Menu
 			case 2:
 				$currentPath = $GLOBALS['Eresus']->request['path'];
 				$itemPath = $GLOBALS['page']->clientURL($item['id']);
-				if (strpos($currentPath, $itemPath) === 0 && $item['name'] != 'main')
+				$isItemChildOfCurrent = strpos($currentPath, $itemPath) === 0;
+				$isItemAndCurrentAreMain = $this->isMainPage($item) && $currentPath . 'main/' == $itemPath;
+				if ($isItemChildOfCurrent || $isItemAndCurrentAreMain)
 				{
 					$template = $this->params['tmplSpecial'];
 				}

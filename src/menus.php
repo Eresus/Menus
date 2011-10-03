@@ -411,7 +411,7 @@ class Menus extends Plugin
 				array('type' => 'memo', 'name' => 'tmplList', 'label' => 'Шаблон блока одного уровня меню',
 					'height' => '3', 'default' => "<ul>\n\t$(items)\n</ul>"),
 				array('type' => 'text',
-					'value' => 'Макросы:<ul><li><b><li><b>$(level)</b> - номер текущего ' .
+					'value' => 'Макросы:<ul><li><b>$(level)</b> - номер текущего ' .
 					'уровня</li><li><b>$(items)</b> - пункты меню</li></ul>'),
 				array('type' => 'edit', 'name' => 'glue', 'label' => 'Разделитель пунктов',
 					'width' => '100%', 'maxlength' => 255),
@@ -424,7 +424,7 @@ class Menus extends Plugin
 				array('type' => 'select', 'name' => 'specialMode', 'items' => array(
 						'нет',
 						'только для выбранного пункта',
-						'для выбранного пункта если выбран его подпункт',
+						'для раздела, если выбран он или его подпункт',
 						'для пунктов, имеющих подпункты'
 					)
 				),
