@@ -144,7 +144,7 @@ class Menus_Menu
 				$template);
 		}
 
-		$template = $GLOBALS['page']->replaceMacros($template, $item);
+		$template = replaceMacros($template, $item);
 
 		return $template;
 	}
