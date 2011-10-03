@@ -31,8 +31,8 @@
  */
 
 
-require __DIR__ . '/../bootstrap.php';
-require TESTS_SRC_DIR . '/menus/classes/Menu.php';
+require_once __DIR__ . '/../bootstrap.php';
+require_once TESTS_SRC_DIR . '/menus/classes/Menu.php';
 
 /**
  * @package Menus

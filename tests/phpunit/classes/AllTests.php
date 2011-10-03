@@ -29,22 +29,29 @@
  * $Id$
  */
 
+if (class_exists('PHP_CodeCoverage_Filter', false))
+{
+	PHP_CodeCoverage_Filter::getInstance()->addFileToBlacklist(__FILE__);
+}
+else
+{
+	PHPUnit_Util_Filter::addFileToFilter(__FILE__);
+}
 
-require_once __DIR__ . '/bootstrap.php';
-require_once TESTS_SRC_DIR . '/menus.php';
+require_once dirname(__FILE__) . '/Menu_Test.php';
 
 /**
  * @package Menus
  * @subpackage Tests
- *
- * @since 2.03
  */
-class Menus_Test extends PHPUnit_Framework_TestCase
+class Classes_AllTests
 {
-	/**
-	 */
-	public function test_fake()
+	public static function suite()
 	{
+		$suite = new PHPUnit_Framework_TestSuite('Classes\All Tests');
+
+		$suite->addTestSuite('Menu_Test');
+
+		return $suite;
 	}
-	//-----------------------------------------------------------------------------
 }
