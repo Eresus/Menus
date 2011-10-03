@@ -4,7 +4,7 @@
  *
  * Меню
  *
- * @version 2.03
+ * @version ${product.version}
  *
  * @copyright 2011, Eresus Project, http://eresus.ru/
  * @license http://www.gnu.org/licenses/gpl.txt GPL License 3
