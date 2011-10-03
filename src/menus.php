@@ -125,12 +125,6 @@ class Menus extends Plugin
 	);
 
 	/**
-	 * “екущее обрабатываемое меню
-	 * @var array
-	 */
-	private $menu = null;
-
-	/**
 	 * ѕуть по разделам к текущему разделу
 	 *
 	 * @var array
@@ -243,7 +237,7 @@ class Menus extends Plugin
 	 */
 	public function clientOnPageRender($text)
 	{
-		global $Eresus, $page;
+		$Eresus = $GLOBALS['Eresus'];
 
 		preg_match_all('/\$\(Menus:(.+)?\)/Usi', $text, $menus, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
 		$delta = 0;
@@ -255,35 +249,17 @@ class Menus extends Plugin
 			array_shift($this->ids);
 		}
 
+		include $this->dirCode . 'classes/Menu.php';
+
 		for ($i = 0; $i < count($menus); $i++)
 		{
-			$this->menu = $Eresus->db->selectItem($this->table['name'],
-				"`name`='".$menus[$i][1][0]."' AND `active` = 1");
-			if (!is_null($this->menu))
+			$params = $this->dbItem('', $menus[$i][1][0], 'name');
+			if ($params && isset($params['active']) && $params['active'])
 			{
-				if ($this->menu['root'] == -1 && $this->menu['rootLevel'])
-				{
-					$parents = $Eresus->sections->parents($page->id);
-					$level = count($parents);
-					if ($level == $this->menu['rootLevel'])
-					{
-						$this->menu['root'] = -1;
-					}
-					elseif ($level > $this->menu['rootLevel'])
-					{
-						$this->menu['root'] = $this->menu['root'] = $parents[$this->menu['rootLevel']];
-					}
-					else
-					{
-						$this->menu['root'] = -2;
-					}
-				}
-				$path = $this->menu['root'] > -1 ?
-					$page->clientURL($this->menu['root']) :
-					$Eresus->request['path'];
-				$menu = $this->menuBranch($this->menu['root'], $path);
-				$text = substr_replace($text, $menu, $menus[$i][0][1]+$delta, strlen($menus[$i][0][0]));
-				$delta += strlen($menu) - strlen($menus[$i][0][0]);
+				$menu = new Menus_Menu($params, $this->ids, $Eresus->root);
+				$html = $menu->render();
+				$text = substr_replace($text, $html, $menus[$i][0][1]+$delta, strlen($menus[$i][0][0]));
+				$delta += strlen($html) - strlen($menus[$i][0][0]);
 			}
 		}
 		return $text;
@@ -313,14 +289,14 @@ class Menus extends Plugin
 	//-----------------------------------------------------------------------------
 
 	/**
-	* ƒобавление меню
-	*
-	* @return void
-	*
-	* @uses Eresus
-	* @uses HTTP::redirect()
-	* @uses arg()
-	*/
+	 * ƒобавление меню
+	 *
+	 * @return void
+	 *
+	 * @uses Eresus
+	 * @uses HTTP::redirect()
+	 * @uses arg()
+	 */
 	private function insert()
 	{
 		global $Eresus;
@@ -629,37 +605,6 @@ class Menus extends Plugin
 	//-----------------------------------------------------------------------------
 
 	/**
-	 * «амена макросов
-	 *
-	 * @param string $template  Ўаблон
-	 * @param array  $item      Ёлемент-источник данных
-	 * @return string  HTML
-	 *
-	 * @see core/classes/backward/TPlugin#replaceMacros($template, $item)
-	 */
-	private function replaceMacros($template, $item)
-	{
-		preg_match_all('|{%selected\?(.*?):(.*?)}|i', $template, $matches);
-		for ($i = 0; $i < count($matches[0]); $i++)
-		{
-			$template = str_replace($matches[0][$i], $item['is-selected']?$matches[1][$i]:$matches[2][$i],
-				$template);
-		}
-
-		preg_match_all('|{%parent\?(.*?):(.*?)}|i', $template, $matches);
-		for ($i = 0; $i < count($matches[0]); $i++)
-		{
-			$template = str_replace($matches[0][$i], $item['is-parent']?$matches[1][$i]:$matches[2][$i],
-				$template);
-		}
-
-		$template = parent::replaceMacros($template, $item);
-
-		return $template;
-	}
-	//------------------------------------------------------------------------------
-
-	/**
 	 * ѕостроение ветки разделов дл€ диалогов добавлени€/изменени€
 	 *
 	 * @param int $owner[optional]  –одительский раздел
@@ -687,125 +632,6 @@ class Menus extends Plugin
 					$result[1] = array_merge($result[1], $sub[1]);
 				}
 			}
-		}
-		return $result;
-	}
-	//------------------------------------------------------------------------------
-
-	/**
-	 * ѕостроение ветки меню
-	 *
-	 * @param int    $owner[optional]  »дентификатор родительского раздела
-	 * @param string $path[optional]   URL родительского раздела
-	 * @param int    $level[optional]  ”ровень вложенности
-	 * @return string  HTML
-	 *
-	 * @uses Eresus
-	 * @uses TClientUI
-	 */
-	private function menuBranch($owner = 0, $path = '', $level = 1)
-	{
-		$Eresus = $GLOBALS['Eresus'];
-		$page = $GLOBALS['page'];
-
-		$result = '';
-		if (strpos($path, $Eresus->root) !== false)
-		{
-			$path = substr($path, strlen($Eresus->root));
-		}
-		if ($owner == -1)
-		{
-			$owner = $page->id;
-		}
-		$item = $Eresus->sections->get($owner);
-		if ($owner == 0 && $item && $item['name'] == 'main')
-		{
-			$path = 'main/';
-		}
-		# ќпредел€ем допустимый уровень доступа
-		$access = $Eresus->user['auth'] ? $Eresus->user['access'] : GUEST;
-		# ќпредел€ем услови€ фильтрации
-		$flags = SECTIONS_ACTIVE | ( $this->menu['invisible'] ? 0 : SECTIONS_VISIBLE );
-		$items = $Eresus->sections->children($owner, $access, $flags);
-
-		if (count($items))
-		{
-			$result = array();
-			$counter = 1;
-
-			foreach ($items as $item)
-			{
-				$template = $this->menu['tmplItem'];
-				/* ” разделов типа 'url' собственный механизм построени€ URL */
-				if ($item['type'] == 'url')
-				{
-					$item = $Eresus->sections->get($item['id']);
-					$item['url'] = $page->replaceMacros($item['content']);
-					if (substr($item['url'], 0, 1) == '/')
-					{
-						$item['url'] = $Eresus->root . substr($item['url'], 1);
-					}
-				}
-				else
-				{
-					$item['url'] = $Eresus->root . $path.($item['name']=='main'?'':$item['name'].'/');
-				}
-
-				$item['level'] = $level;
-				$item['is-selected'] = $item['id'] == $page->id;
-				$item['is-parent'] = !$item['is-selected'] && in_array($item['id'], $this->ids);
-				#var_dump($item['caption']);
-
-				# true если раздел находитс€ в выбранной ветке
-				$inSelectedBranch = $item['is-parent'] || $item['is-selected'];
-				# true если не достигнут максимальный уровень ручного развЄртывани€
-				$notMaxExpandLevel = !$this->menu['expandLevelMax'] ||
-					$level < $this->menu['expandLevelMax'];
-				# true если не достигнут максимальный уровень автоматического развЄртывани€
-				$notMaxAutoExpandLevel = !$this->menu['expandLevelAuto'] ||
-					$level < $this->menu['expandLevelAuto'];
-
-				if ($notMaxAutoExpandLevel || ($inSelectedBranch && $notMaxExpandLevel))
-				{
-					$item['submenu'] = $this->menuBranch($item['id'], $path.$item['name'].'/', $level+1);
-				}
-				switch ($this->menu['specialMode'])
-				{
-					case 0: # нет
-					break;
-					case 1: # только дл€ выбранного пункта
-						if ($item['is-selected'])
-						{
-							$template = $this->menu['tmplSpecial'];
-						}
-					break;
-					case 2: # дл€ выбранного пункта если выбран его подпункт
-						if (
-								(strpos($Eresus->request['path'], $page->clientURL($item['id'])) === 0) &&
-								$item['name'] != 'main'
-							)
-						{
-							$template = $this->menu['tmplSpecial'];
-						}
-					break;
-					case 3: # дл€ пунктов, имеющих подпункты
-						if (count($Eresus->sections->branch_ids($item['id'])))
-						{
-							$template = $this->menu['tmplSpecial'];
-						}
-					break;
-				}
-				$item['counter'] = $counter++;
-				if ($this->menu['counterReset'] && $counter > $this->menu['counterReset'])
-				{
-					$counter = 1;
-				}
-				$result[] = $this->replaceMacros($template, $item);
-
-			}
-			$result = implode($this->menu['glue'], $result);
-			$result = array('level'=> ($level), 'items'=>$result);
-			$result = $this->replaceMacros($this->menu['tmplList'], $result);
 		}
 		return $result;
 	}
