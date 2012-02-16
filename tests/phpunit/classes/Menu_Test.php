@@ -171,4 +171,34 @@ class Menu_Test extends PHPUnit_Framework_TestCase
 		$this->assertEquals('bar', $m_getTemplate->invoke($menu, $item));
 	}
 	//-----------------------------------------------------------------------------
+
+	/**
+	 * Провал теста — сообщение о необъявленной переменной
+	 *
+	 * @link http://bugs.eresus.ru/view.php?id=778
+	 * @covers Menus_Menu::renderItem
+	 */
+	public function test_issue778()
+	{
+		$m_renderItem = new ReflectionMethod('Menus_Menu', 'renderItem');
+		$m_renderItem->setAccessible(true);
+
+		$GLOBALS['page'] = new stdClass();
+		$GLOBALS['page']->id = 1;
+
+		$params = array(
+			'expandLevelMax' => 1,
+			'expandLevelAuto' => 1,
+		);
+
+		$menu = $this->getMock(
+			'Menus_Menu',
+			array('isMainPage', 'buildURL', 'renderBranch', 'getTemplate', 'replaceMacros'),
+			array($params, array('1'), '')
+		);
+
+		$item = array('id' => 1, 'level' => 1);
+		$m_renderItem->invoke($menu, $item, 'http://example.org/');
+	}
+	//-----------------------------------------------------------------------------
 }

@@ -43,7 +43,7 @@
 				--log-junit ${logs.dir}/phpunit.xml
 				--coverage-clover ${logs.dir}/phpunit.coverage.xml
 				--coverage-html ${phpunit.coverage.html}
-				${project.basedir}/tests/phpunit/AllTests.php"
+				--configuration ${project.basedir}/tests/phpunit/phpunit.xml"
 			checkreturn="true"
 			logoutput="true"
 		/>

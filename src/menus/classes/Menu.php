@@ -258,10 +258,10 @@ class Menus_Menu
 		$inSelectedBranch = $item['is-parent'] || $item['is-selected'];
 		// true если не достигнут максимальный уровень ручного развёртывания
 		$notMaxExpandLevel = !$this->params['expandLevelMax'] ||
-			$level < $this->params['expandLevelMax'];
+			$item['level'] < $this->params['expandLevelMax'];
 		// true если не достигнут максимальный уровень автоматического развёртывания
 		$notMaxAutoExpandLevel = !$this->params['expandLevelAuto'] ||
-			$level < $this->params['expandLevelAuto'];
+			$item['level'] < $this->params['expandLevelAuto'];
 
 		if ($notMaxAutoExpandLevel || ($inSelectedBranch && $notMaxExpandLevel))
 		{
