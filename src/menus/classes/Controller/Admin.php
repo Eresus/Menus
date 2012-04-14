@@ -90,8 +90,6 @@ class Menus_Controller_Admin
 	 * Добавление меню
 	 *
 	 * @return string
-	 *
-	 * @uses TAdminUI::renderForm()
 	 */
 	public function addAction()
 	{
@@ -104,4 +102,32 @@ class Menus_Controller_Admin
 		return $html;
 	}
 	//------------------------------------------------------------------------------
+
+	/**
+	 * Изменение меню
+	 *
+	 * @return string  HTML
+	 */
+	public function editAction()
+	{
+		$item = $this->plugin->dbItem('', arg('id', 'int'));
+
+		$form = $this->plugin->createDialogTemplate();
+		$form['caption'] = 'Изменить меню';
+		$form['fields'] []= array('type' => 'hidden', 'name' => 'update', 'value' => $item['id']);
+		$form['buttons'] = array('ok', 'apply', 'cancel');
+		foreach ($form['fields'] as &$field)
+		{
+			if ('rootLevel' == $field['name'])
+			{
+				$field['disabled'] = $item['root'] != -1;
+				break;
+			}
+		}
+
+		$result = $this->ui->renderForm($form, $item);
+		return $result;
+	}
+	//------------------------------------------------------------------------------
+
 }

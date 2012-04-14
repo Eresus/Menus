@@ -189,8 +189,8 @@ class Menus extends Plugin
 					$this->down(arg('down', 'dbsafe'));
 			break;
 			case !is_null(arg('id')):
-				$result = $this->adminEditItem();
-			break;
+				$result = $ctrl->editAction();
+				break;
 			case !is_null(arg('action')):
 				switch (arg('action'))
 				{
@@ -445,36 +445,6 @@ class Menus extends Plugin
 			'buttons' => array('ok', 'cancel'),
 		);
 		return $form;
-	}
-	//------------------------------------------------------------------------------
-
-	/**
-	 * Диалог изменения меню
-	 *
-	 * @return string
-	 *
-	 * @uses Eresus
-	 * @uses TAdminUI
-	 */
-	private function adminEditItem()
-	{
-		$item = $this->dbItem('', arg('id', 'int'));
-
-		$form = $this->createDialogTemplate();
-		$form['caption'] = 'Изменить меню';
-		$form['fields'] []= array('type' => 'hidden', 'name' => 'update', 'value' => $item['id']);
-		$form['buttons'] = array('ok', 'apply', 'cancel');
-		foreach ($form['fields'] as &$field)
-		{
-			if ('rootLevel' == $field['name'])
-			{
-				$field['disabled'] = $item['root'] != -1;
-				break;
-			}
-		}
-
-		$result = $GLOBALS['page']->renderForm($form, $item);
-		return $result;
 	}
 	//------------------------------------------------------------------------------
 
