@@ -254,7 +254,7 @@ class Menus extends Plugin
 			$params = $this->dbItem('', $menus[$i][1][0], 'name');
 			if ($params && isset($params['active']) && $params['active'])
 			{
-				$menu = new Menus_Menu($params, $this->ids, $Eresus->root);
+				$menu = new Menus_Menu($Eresus, $GLOBALS['page'], $params, $this->ids);
 				$html = $menu->render();
 				$text = substr_replace($text, $html, $menus[$i][0][1]+$delta, strlen($menus[$i][0][0]));
 				$delta += strlen($html) - strlen($menus[$i][0][0]);

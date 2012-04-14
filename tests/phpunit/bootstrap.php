@@ -36,8 +36,20 @@ define('GUEST', 5);
 define('SECTIONS_ACTIVE',  0x0001);
 define('SECTIONS_VISIBLE', 0x0002);
 
+class Eresus
+{
+	public $request = array();
+	public $root = '';
+	public $sections;
+}
+
 class Plugin
 {
 	public function __construct() {}
 	protected function listenEvents() {}
+}
+
+class TClientUI
+{
+	public $id = 1;
 }

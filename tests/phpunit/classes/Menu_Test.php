@@ -71,7 +71,7 @@ class Menu_Test extends PHPUnit_Framework_TestCase
 			'tmplItem' => 'foo',
 			'tmplSpecial' => 'bar',
 		);
-		$menu = new Menus_Menu($params, array(), '');
+		$menu = new Menus_Menu(new Eresus, new TClientUI, $params, array());
 		$item = array();
 		$this->assertEquals('foo', $m_getTemplate->invoke($menu, $item));
 
@@ -80,7 +80,7 @@ class Menu_Test extends PHPUnit_Framework_TestCase
 			'tmplItem' => 'foo',
 			'tmplSpecial' => 'bar',
 		);
-		$menu = new Menus_Menu($params, array(), '');
+		$menu = new Menus_Menu(new Eresus, new TClientUI, $params, array());
 		$item = array('is-selected' => false);
 		$this->assertEquals('foo', $m_getTemplate->invoke($menu, $item));
 		$item = array('is-selected' => true);
@@ -97,8 +97,9 @@ class Menu_Test extends PHPUnit_Framework_TestCase
 		$m_buildURL->setAccessible(true);
 		$params = array();
 		$ids = array();
-		$rootURL = 'http://example.org/';
-		$menu = new Menus_Menu($params, $ids, $rootURL);
+		$Eresus = new Eresus;
+		$Eresus->root = 'http://example.org/';
+		$menu = new Menus_Menu($Eresus, new TClientUI, $params, $ids);
 
 		$item = array(
 			'name' => 'main',
@@ -125,13 +126,13 @@ class Menu_Test extends PHPUnit_Framework_TestCase
 		$sections->expects($this->once())->method('get')->with(123)->will($this->returnValue(array(
 			'content' => 'foo'
 		)));
-		$GLOBALS['Eresus'] = new stdClass;
-		$GLOBALS['Eresus']->sections = $sections;
+		$Eresus->sections = $sections;
 
-		$page = $this->getMock('stdClass', array('replaceMacros'));
-		$page->expects($this->once())->method('replaceMacros')->with('foo')->
+		$ui = $this->getMock('TClientUI', array('replaceMacros'));
+		$ui->expects($this->once())->method('replaceMacros')->with('foo')->
 			will($this->returnValue('/bar.html'));
-		$GLOBALS['page'] = $page;
+
+		$menu = new Menus_Menu($Eresus, $ui, $params, $ids);
 
 		$item = array(
 			'id' => 123,
@@ -153,20 +154,19 @@ class Menu_Test extends PHPUnit_Framework_TestCase
 		$m_getTemplate = new ReflectionMethod('Menus_Menu', 'getTemplate');
 		$m_getTemplate->setAccessible(true);
 
-		$GLOBALS['Eresus'] = new stdClass();
-		$GLOBALS['Eresus']->request = array('path' => 'http://example.org/');
+		$Eresus = new Eresus;
+		$Eresus->request = array('path' => 'http://example.org/');
 
-		$page = $this->getMock('stdClass', array('clientURL'));
-		$page->expects($this->once())->method('clientURL')->with(1)->
+		$ui = $this->getMock('TClientUI', array('clientURL'));
+		$ui->expects($this->once())->method('clientURL')->with(1)->
 			will($this->returnValue('http://example.org/main/'));
-		$GLOBALS['page'] = $page;
 
 		$params = array(
 			'specialMode' => 2,
 			'tmplItem' => 'foo',
 			'tmplSpecial' => 'bar',
 		);
-		$menu = new Menus_Menu($params, array('1'), '');
+		$menu = new Menus_Menu($Eresus, $ui, $params, array('1'));
 		$item = array('id' => 1, 'owner' => 0, 'name' => 'main');
 		$this->assertEquals('bar', $m_getTemplate->invoke($menu, $item));
 	}
@@ -183,8 +183,8 @@ class Menu_Test extends PHPUnit_Framework_TestCase
 		$m_renderItem = new ReflectionMethod('Menus_Menu', 'renderItem');
 		$m_renderItem->setAccessible(true);
 
-		$GLOBALS['page'] = new stdClass();
-		$GLOBALS['page']->id = 1;
+		$ui = new TClientUI();
+		$ui->id = 1;
 
 		$params = array(
 			'expandLevelMax' => 1,
@@ -194,7 +194,7 @@ class Menu_Test extends PHPUnit_Framework_TestCase
 		$menu = $this->getMock(
 			'Menus_Menu',
 			array('isMainPage', 'buildURL', 'renderBranch', 'getTemplate', 'replaceMacros'),
-			array($params, array('1'), '')
+			array(new Eresus, $ui, $params, array('1'))
 		);
 
 		$item = array('id' => 1, 'level' => 1);

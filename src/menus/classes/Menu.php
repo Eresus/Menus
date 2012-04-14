@@ -39,6 +39,22 @@
 class Menus_Menu
 {
 	/**
+	 * Объект Ereus
+	 *
+	 * @var Eresus
+	 * @since 3.00
+	 */
+	protected $Eresus;
+
+	/**
+	 * Объект КИ
+	 *
+	 * @var TClientUI
+	 * @since 3.00
+	 */
+	protected $ui;
+
+	/**
 	 * Параметры меню
 	 *
 	 * @var array
@@ -53,13 +69,6 @@ class Menus_Menu
 	 * @since 2.03
 	 */
 	protected $ids;
-
-	/**
-	 * Корневой URL сайта
-	 *
-	 * @var string
-	 */
-	protected $rootURL;
 
 	/**
 	 * Порог доступа к разделам
@@ -78,19 +87,21 @@ class Menus_Menu
 	/**
 	 * Конструктор меню
 	 *
-	 * @param array  $params   параметры меню
-	 * @param array  $ids      …
-	 * @param string $rootURL  корневой URL сайта
+	 * @param Eresus    $Eresus
+	 * @param TClientUI $ui
+	 * @param array     $params   параметры меню
+	 * @param array     $ids      …
 	 *
 	 * @return Menus_Menu
 	 *
 	 * @since 2.03
 	 */
-	public function __construct(array $params, array $ids, $rootURL)
+	public function __construct(Eresus $Eresus, TClientUI $ui, array $params, array $ids)
 	{
+		$this->Eresus = $Eresus;
+		$this->ui = $ui;
 		$this->params = $params;
 		$this->ids = $ids;
-		$this->rootURL = $rootURL;
 	}
 	//-----------------------------------------------------------------------------
 
@@ -105,11 +116,11 @@ class Menus_Menu
 	{
 		$this->detectRoot();
 		$path = $this->params['root'] > -1 ?
-			$GLOBALS['page']->clientURL($this->params['root']) :
-			$GLOBALS['Eresus']->request['path'];
+			$this->ui->clientURL($this->params['root']) :
+			$this->Eresus->request['path'];
 
 		/* Определяем допустимый уровень доступа */
-		$user = $GLOBALS['Eresus']->user;
+		$user = $this->Eresus->user;
 		$this->accessThreshold = $user['auth'] ? $user['access'] : GUEST;
 
 		// Определяем условия фильтрации
@@ -162,7 +173,7 @@ class Menus_Menu
 	{
 		if ($this->params['root'] == -1 && $this->params['rootLevel'])
 		{
-			$parents = $GLOBALS['Eresus']->sections->parents($GLOBALS['page']->id);
+			$parents = $this->Eresus->sections->parents($this->ui->id);
 			$level = count($parents);
 			if ($level == $this->params['rootLevel'])
 			{
@@ -194,17 +205,16 @@ class Menus_Menu
 	 */
 	protected function renderBranch($ownerId = 0, $path = '', $level = 1)
 	{
-		$sections = $GLOBALS['Eresus']->sections;
-		$page = $GLOBALS['page'];
+		$sections = $this->Eresus->sections;
 
 		$result = '';
-		if (strpos($path, $this->rootURL) !== false)
+		if (strpos($path, $this->Eresus->root) !== false)
 		{
-			$path = substr($path, strlen($this->rootURL));
+			$path = substr($path, strlen($this->Eresus->root));
 		}
 		if ($ownerId == -1)
 		{
-			$ownerId = $page->id;
+			$ownerId = $this->ui->id;
 		}
 		$rootItem = $sections->get($ownerId);
 		if ($this->isMainPage($rootItem))
@@ -252,7 +262,7 @@ class Menus_Menu
 	{
 		$item['is-main'] = $this->isMainPage($item);
 		$item['url'] = $this->buildURL($item, $rootURL);
-		$item['is-selected'] = $item['id'] == $GLOBALS['page']->id;
+		$item['is-selected'] = $item['id'] == $this->ui->id;
 		$item['is-parent'] = !$item['is-selected'] && in_array($item['id'], $this->ids);
 
 		// true если раздел находится в выбранной ветке
@@ -316,8 +326,8 @@ class Menus_Menu
 
 			/* для выбранного пункта если выбран его подпункт */
 			case 2:
-				$currentPath = $GLOBALS['Eresus']->request['path'];
-				$itemPath = $GLOBALS['page']->clientURL($item['id']);
+				$currentPath = $this->Eresus->request['path'];
+				$itemPath = $this->ui->clientURL($item['id']);
 				$isItemChildOfCurrent = strpos($currentPath, $itemPath) === 0;
 				$isItemAndCurrentAreMain = $this->isMainPage($item) && $currentPath . 'main/' == $itemPath;
 				if ($isItemChildOfCurrent || $isItemAndCurrentAreMain)
@@ -328,7 +338,7 @@ class Menus_Menu
 
 			/* для пунктов, имеющих подпункты */
 			case 3:
-				if (count($GLOBALS['Eresus']->sections->branch_ids($item['id'])))
+				if (count($this->Eresus->sections->branch_ids($item['id'])))
 				{
 					$template = $this->params['tmplSpecial'];
 				}
@@ -354,16 +364,16 @@ class Menus_Menu
 		/* У разделов типа 'url' собственный механизм построения URL */
 		if ($item['type'] == 'url')
 		{
-			$item = $GLOBALS['Eresus']->sections->get($item['id']);
-			$url = $GLOBALS['page']->replaceMacros($item['content']);
+			$item = $this->Eresus->sections->get($item['id']);
+			$url = $this->ui->replaceMacros($item['content']);
 			if (substr($url, 0, 1) == '/')
 			{
-				$url = $this->rootURL . substr($url, 1);
+				$url = $this->Eresus->root . substr($url, 1);
 			}
 		}
 		else
 		{
-			$url = $this->rootURL . $rootURL . ($item['name'] == 'main' ? '' : $item['name'] . '/');
+			$url = $this->Eresus->root . $rootURL . ($item['name'] == 'main' ? '' : $item['name'] . '/');
 		}
 
 		return $url;
