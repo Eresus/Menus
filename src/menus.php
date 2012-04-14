@@ -9,7 +9,7 @@
  * @copyright 2007, Eresus Group, http://eresus.ru/
  * @copyright 2010, ООО "Два слона", http://dvaslona.ru/
  * @license http://www.gnu.org/licenses/gpl.txt  GPL License 3
- * @author Mikhail Krasilnikov <mk@procreat.ru>
+ * @author Михаил Красильников <mihalych@vsepofigu.ru>
  *
  * Данная программа является свободным программным обеспечением. Вы
  * вправе распространять ее и/или модифицировать в соответствии с
@@ -60,7 +60,7 @@ class Menus extends Plugin
 	 * Требуемая версия ядра
 	 * @var string
 	 */
-	public $kernel = '2.12';
+	public $kernel = '3.00b';
 
 	/**
 	 * Описание плагина
@@ -121,7 +121,7 @@ class Menus extends Plugin
 			PRIMARY KEY  (`id`),
 			KEY `name` (`name`),
 			KEY `active` (`active`)
-		) TYPE=MyISAM COMMENT='Menu collection';",
+		);",
 	);
 
 	/**
@@ -248,8 +248,6 @@ class Menus extends Plugin
 		{
 			array_shift($this->ids);
 		}
-
-		include $this->dirCode . 'classes/Menu.php';
 
 		for ($i = 0; $i < count($menus); $i++)
 		{
