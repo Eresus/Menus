@@ -85,4 +85,23 @@ class Menus_Controller_Admin
 		return $html;
 	}
 	//-----------------------------------------------------------------------------
+
+	/**
+	 * Добавление меню
+	 *
+	 * @return string
+	 *
+	 * @uses TAdminUI::renderForm()
+	 */
+	public function addAction()
+	{
+		$form = $this->plugin->createDialogTemplate();
+
+		$form['caption'] = 'Создать меню';
+		$form['fields'] []= array('type' => 'hidden', 'name' => 'action', 'value' => 'insert');
+		$html = $this->ui->renderForm($form);
+
+		return $html;
+	}
+	//------------------------------------------------------------------------------
 }

@@ -160,6 +160,7 @@ class Menus extends Plugin
 		global $Eresus, $page;
 
 		$result = '';
+		$ctrl = new Menus_Controller_Admin($this, $page);
 		if (!is_null(arg('id')))
 		{
 			$item = $Eresus->db->selectItem($this->table['name'],
@@ -194,7 +195,7 @@ class Menus extends Plugin
 				switch (arg('action'))
 				{
 					case 'create':
-						$result = $this->adminAddItem();
+						$result = $ctrl->addAction();
 					break;
 					case 'insert':
 						$result = $this->insert();
@@ -202,7 +203,6 @@ class Menus extends Plugin
 				}
 			break;
 			default:
-				$ctrl = new Menus_Controller_Admin($this, $page);
 				$result = $ctrl->listAction();
 		}
 		return $result;
@@ -371,7 +371,7 @@ class Menus extends Plugin
 	 *
 	 * @since 2.03
 	 */
-	private function createDialogTemplate()
+	public function createDialogTemplate()
 	{
 		$sections = $this->adminSectionBranch();
 		array_unshift($sections[0], 'ТЕКУЩИЙ РАЗДЕЛ');
@@ -445,25 +445,6 @@ class Menus extends Plugin
 			'buttons' => array('ok', 'cancel'),
 		);
 		return $form;
-	}
-	//------------------------------------------------------------------------------
-
-	/**
-	 * Диалог добавления меню
-	 *
-	 * @return string
-	 *
-	 * @uses TAdminUI
-	 */
-	private function adminAddItem()
-	{
-		$form = $this->createDialogTemplate();
-
-		$form['caption'] = 'Создать меню';
-		$form['fields'] []= array('type' => 'hidden', 'name' => 'action', 'value' => 'insert');
-		$result = $GLOBALS['page']->renderForm($form);
-
-		return $result;
 	}
 	//------------------------------------------------------------------------------
 
