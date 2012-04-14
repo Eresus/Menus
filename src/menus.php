@@ -82,7 +82,7 @@ class Menus extends Plugin
 	 *
 	 * @var array
 	 */
-	private $table = array (
+	public $table = array (
 		'name' => 'menus',
 		'key'=> 'id',
 		'sortMode' => 'id',
@@ -202,11 +202,8 @@ class Menus extends Plugin
 				}
 			break;
 			default:
-				if (!is_null(arg('section')))
-				{
-					$this->table['condition'] = "`section`='".arg('section', 'int')."'";
-				}
-				$result = $page->renderTable($this->table);
+				$ctrl = new Menus_Controller_Admin($this, $page);
+				$result = $ctrl->listAction();
 		}
 		return $result;
 	}
