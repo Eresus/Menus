@@ -93,11 +93,42 @@ class Menus_Controller_Admin
 	 */
 	public function addAction()
 	{
-		$form = $this->createDialogTemplate();
+		$req = $GLOBALS['Eresus']->request;
 
-		$form['caption'] = 'Создать меню';
-		$form['fields'] []= array('type' => 'hidden', 'name' => 'action', 'value' => 'insert');
-		$html = $this->ui->renderForm($form);
+		if ('POST' == $req['method'])
+		{
+			$menu = array(
+				'name' => arg('name', 'word'),
+				'caption' => arg('caption', 'dbsafe'),
+				'active' => true,
+				'root' => arg('root', 'int'),
+				'rootLevel' => arg('rootLevel', 'int'),
+				'invisible' => arg('invisible', 'int'),
+				'expandLevelAuto' => arg('expandLevelAuto', 'int'),
+				'expandLevelMax' => arg('expandLevelMax', 'int'),
+				'template' => arg('template', 'dbsafe'),
+			);
+
+			if (!$this->plugin->dbItem('', $menu['name'], 'name'))
+			{
+				$this->plugin->dbInsert('', $menu);
+				HTTP::redirect('admin.php?mod=ext-menus');
+			}
+			else
+			{
+				ErrorMessage('Меню с таким именем уже есть');
+			}
+		}
+		else
+		{
+			$menu = null;
+		}
+
+		$form = new EresusForm('ext/' . $this->plugin->name . '/templates/form.html');
+		$form->setValue('sections', $this->adminSectionBranch());
+		$form->setValue('action', 'create');
+		$form->setValue('menu', $menu);
+		$html = $form->compile();
 
 		return $html;
 	}
@@ -110,23 +141,45 @@ class Menus_Controller_Admin
 	 */
 	public function editAction()
 	{
-		$item = $this->plugin->dbItem('', arg('id', 'int'));
+		$menu = $this->plugin->dbItem('', arg('id', 'int'));
 
-		$form = $this->createDialogTemplate();
-		$form['caption'] = 'Изменить меню';
-		$form['fields'] []= array('type' => 'hidden', 'name' => 'update', 'value' => $item['id']);
-		$form['buttons'] = array('ok', 'apply', 'cancel');
-		foreach ($form['fields'] as &$field)
+		if (!$menu)
 		{
-			if ('rootLevel' == $field['name'])
+			return 'Такое меню не найдено.';
+		}
+
+		$req = $GLOBALS['Eresus']->request;
+
+		if ('POST' == $req['method'])
+		{
+			$menu['name'] = arg('name', 'word');
+			$menu['caption'] = arg('caption', 'dbsafe');
+			$menu['active'] = arg('active');
+			$menu['root'] = arg('root', 'int');
+			$menu['rootLevel'] = arg('rootLevel', 'int');
+			$menu['invisible'] = arg('invisible', 'int');
+			$menu['expandLevelAuto'] = arg('expandLevelAuto', 'int');
+			$menu['expandLevelMax'] = arg('expandLevelMax', 'int');
+			$menu['template'] = arg('template', 'dbsafe');
+
+			if (!$this->plugin->dbSelect('', "name = '{$menu['name']}' AND id <> {$menu['id']}"))
 			{
-				$field['disabled'] = $item['root'] != -1;
-				break;
+				$this->plugin->dbUpdate('', $menu);
+				HTTP::redirect('admin.php?mod=ext-menus');
+			}
+			else
+			{
+				ErrorMessage('Меню с таким именем уже есть');
 			}
 		}
 
-		$result = $this->ui->renderForm($form, $item);
-		return $result;
+		$form = new EresusForm('ext/' . $this->plugin->name . '/templates/form.html');
+		$form->setValue('sections', $this->adminSectionBranch());
+		$form->setValue('action', 'edit');
+		$form->setValue('menu', $menu);
+		$html = $form->compile();
+
+		return $html;
 	}
 	//------------------------------------------------------------------------------
 
@@ -139,7 +192,7 @@ class Menus_Controller_Admin
 	 */
 	private function createDialogTemplate()
 	{
-		$sections = $this->plugin->adminSectionBranch();
+		$sections = $this->adminSectionBranch();
 		array_unshift($sections[0], 'ТЕКУЩИЙ РАЗДЕЛ');
 		array_unshift($sections[1], -1);
 		array_unshift($sections[0], 'КОРЕНЬ');
@@ -211,6 +264,36 @@ class Menus_Controller_Admin
 			'buttons' => array('ok', 'cancel'),
 		);
 		return $form;
+	}
+	//------------------------------------------------------------------------------
+
+	/**
+	 * Построение ветки разделов для диалогов добавления/изменения
+	 *
+	 * @param int $owner  Родительский раздел
+	 * @param int $level  Уровень вложенности
+	 * @return array
+	 */
+	private function adminSectionBranch($owner = 0, $level = 0)
+	{
+		$result = array();
+		$items = $GLOBALS['Eresus']->sections->children($owner, GUEST, SECTIONS_ACTIVE);
+		if (count($items))
+		{
+			foreach ($items as $item)
+			{
+				$result []= array(
+					'caption' => str_repeat('- ', $level) . $item['caption'],
+					'id' => $item['id']
+				);
+				$sub = $this->adminSectionBranch($item['id'], $level + 1);
+				if (count($sub))
+				{
+					$result = array_merge($result, $sub);
+				}
+			}
+		}
+		return $result;
 	}
 	//------------------------------------------------------------------------------
 

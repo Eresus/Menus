@@ -104,23 +104,18 @@ class Menus extends Plugin
 		),
 		'sql' => "(
 			`id` int(10) unsigned NOT NULL auto_increment,
-			`name` varchar(31) default NULL,
+			`name` varchar(255) default NULL,
 			`caption` varchar(255) default NULL,
 			`active` tinyint(1) unsigned default NULL,
 			`root` int(10) default NULL,
 			`rootLevel` int(10) unsigned default 0,
+			`invisible` tinyint(1) unsigned default 0,
 			`expandLevelAuto` int(10) unsigned default 0,
 			`expandLevelMax` int(10) unsigned default 0,
-			`glue` varchar(255) default '',
-			`tmplList` text,
-			`tmplItem` text,
-			`tmplSpecial` text,
-			`specialMode` tinyint(3) unsigned default 0,
-			`invisible` tinyint(1) unsigned default 0,
-			`counterReset` int(10) unsigned default 0,
+			`template` text,
 			PRIMARY KEY  (`id`),
-			KEY `name` (`name`),
-			KEY `active` (`active`)
+			KEY `client` (`name`, `active`),
+			KEY `admin` (`name`)
 		);",
 	);
 
@@ -149,6 +144,19 @@ class Menus extends Plugin
 		$this->listenEvents('clientOnURLSplit', 'clientOnPageRender', 'adminOnMenuRender');
 	}
 	//------------------------------------------------------------------------------
+
+	/**
+	 * Возвращает путь к директории файлов плагина
+	 *
+	 * @return string
+	 *
+	 * @since 3.00
+	 */
+	public function getCodeDir()
+	{
+		return $this->dirCode;
+	}
+	//-----------------------------------------------------------------------------
 
 	/**
 	 * Вывод АИ плагина
@@ -188,21 +196,15 @@ class Menus extends Plugin
 					$this->up(arg('down', 'dbsafe')) :
 					$this->down(arg('down', 'dbsafe'));
 			break;
+
 			case !is_null(arg('id')):
 				$result = $ctrl->editAction();
 				break;
-			case !is_null(arg('action')):
-				switch (arg('action'))
-				{
-					case 'create':
-						$result = $ctrl->addAction();
-						break;
 
-					case 'insert':
-						$result = $this->insert();
-					break;
-				}
-			break;
+			case arg('action') == 'create':
+				$result = $ctrl->addAction();
+				break;
+
 			default:
 				$result = $ctrl->listAction();
 		}
@@ -283,46 +285,6 @@ class Menus extends Plugin
 		parent::install();
 	}
 	//-----------------------------------------------------------------------------
-
-	/**
-	 * Добавление меню
-	 *
-	 * @return void
-	 *
-	 * @uses Eresus
-	 * @uses HTTP::redirect()
-	 * @uses arg()
-	 */
-	private function insert()
-	{
-		global $Eresus;
-
-		$item = array(
-				'name' => arg('name', 'word'),
-				'caption' => arg('caption', 'dbsafe'),
-				'active' => true,
-				'root' => arg('root', 'int'),
-				'rootLevel' => arg('rootLevel', 'int'),
-				'expandLevelAuto' => arg('expandLevelAuto', 'int'),
-				'expandLevelMax' => arg('expandLevelMax', 'int'),
-				'glue' => arg('glue', 'dbsafe'),
-				'tmplList' => arg('tmplList', 'dbsafe'),
-				'tmplItem' => arg('tmplItem', 'dbsafe'),
-				'tmplSpecial' => arg('tmplSpecial', 'dbsafe'),
-				'specialMode' => arg('specialMode', 'dbsafe'),
-				'invisible' => arg('invisible', 'int'),
-				'counterReset' => arg('counterReset', 'int'),
-		);
-
-		if ($Eresus->db->selectItem($this->table['name'], "`name`='".$item['name']."'"))
-		{
-			ErrorMessage('Меню с таким именем уже есть');
-			HTTP::goback();
-		}
-		$Eresus->db->insert($this->table['name'], $item);
-		HTTP::redirect(arg('submitURL'));
-	}
-	//------------------------------------------------------------------------------
 
 	/**
 	 * Обновление меню
@@ -425,38 +387,5 @@ class Menus extends Plugin
 		HTTP::redirect(str_replace('&amp;', '&', $page->url()));
 	}
 	//-----------------------------------------------------------------------------
-
-	/**
-	 * Построение ветки разделов для диалогов добавления/изменения
-	 *
-	 * @param int $owner  Родительский раздел
-	 * @param int $level  Уровень вложенности
-	 * @return array
-	 *
-	 * @uses Eresus
-	 */
-	public function adminSectionBranch($owner = 0, $level = 0)
-	{
-		global $Eresus;
-
-		$result = array(array(), array());
-		$items = $Eresus->sections->children($owner, GUEST, SECTIONS_ACTIVE);
-		if (count($items))
-		{
-			foreach ($items as $item)
-			{
-				$result[0][] = str_repeat('- ', $level).$item['caption'];
-				$result[1][] = $item['id'];
-				$sub = $this->adminSectionBranch($item['id'], $level+1);
-				if (count($sub[0]))
-				{
-					$result[0] = array_merge($result[0], $sub[0]);
-					$result[1] = array_merge($result[1], $sub[1]);
-				}
-			}
-		}
-		return $result;
-	}
-	//------------------------------------------------------------------------------
 
 }

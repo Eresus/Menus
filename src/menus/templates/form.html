@@ -1,0 +1,141 @@
+<form xmlns:fc="http://eresus.ru/schema/form/" action="admin.php" id="menus"
+	class="ui-widget ui-widget-content ui-corner-all" style="width: 800px">
+
+	<div class="ui-padding">
+	
+		<input type="hidden" name="mod" value="ext-menus" />
+		<input type="hidden" name="action" value="{$action}" />
+		{if 'edit' == $action}<input type="hidden" name="id" value="{$menu.id}" />{/if}
+	
+		<fc:tabwidget id="settingsFormTabs">
+
+			<fc:tabcontrol>
+				<fc:tab name="basic">Упрощённые настройки</fc:tab>
+				<fc:tab name="advanced">Расширенные настройки</fc:tab>
+			</fc:tabcontrol>
+
+			<fc:tabs>
+
+				<fc:tab name="basic">
+					<table class="ui-grid ui-hlines">
+						<tr>
+							<td>
+								<label for="caption-input">Название:<sup>*</sup></label><br />
+								<input type="text" name="caption" id="caption-input" maxlength="255" size="40"
+									required="required"{if $menu} value="{$menu.caption|escape}"{/if} />
+							</td>
+							<td class="ui-minor">
+								Название меню для внутреннего пользования, оно не будет видно посетителям сайта.
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<label for="name-input">Имя для вставки в шаблоны:<sup>*</sup></label><br />
+								<input type="text" name="name" id="name-input" maxlength="255" size="40"
+									{if $menu} value="{$menu.name|escape}"{/if}
+									required="required" pattern="^[a-zA-Z0-9_\-]+$"
+									title="Только латинские буквы, цифры и символы «_» и «-»" />
+							</td>
+							<td class="ui-minor">
+								Используется при вставке меню в шаблоны при помощи записи вида <code>$(Menus:имя_меню)</code>.
+								Можно использовать только латинские буквы, цифры и символы «_» и «-».
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<label for="root-input">Корневой раздел:</label><br />
+								<select name="root" id="root-input"
+									onchange="this.form.rootLevel.disabled = this.value != -1">
+									<option value="0"{if $menu && 0 == $menu.root} selected="selected"{/if}>КОРЕНЬ САЙТА</option>
+									<option value="-1"{if $menu && -1 == $menu.root} selected="selected"{/if}>ТЕКУЩИЙ РАЗДЕЛ</option>
+									{foreach $sections section}
+									<option value="{$section.id}"{if $menu && $section.id == $menu.root} selected="selected"{/if}>{$section.caption}</option>
+									{/foreach}
+								</select>
+							</td>
+							<td class="ui-minor">
+								Раздел, подразделы которого должны отображаться в меню.
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<label for="rootLevel-input">Фиксированный уровень:</label><br />
+								<input type="number" name="rootLevel" id="rootLevel-input" maxlength="3" size="2"
+									required="required" min="0" value="{if $menu}{$menu.rootLevel|escape}{else}0{/if}"
+									{if !$menu || -1 != $menu.root} disabled="disabled"{/if} />
+							</td>
+							<td class="ui-minor">
+								Используется только если Корневой раздел установлен в «ТЕКУЩИЙ РАЗДЕЛ». В меню будут
+								отображаться разделы этого уровня, даже если раздел, в котором находится посетитель,
+								имеет больший уровень вложенности.
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<label>
+									<input type="checkbox" name="invisible" value="1"{if $menu && $menu.invisible} checked="checked"{/if} />
+									<span>Показывать скрытые разделы</span>
+								</label>
+							</td>
+							<td class="ui-minor">
+								Если этот параметр включен, то в меню будут отображаться как видимые (с
+								установленным флажком «Видимый»), так и невидимые разделы. 
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<label for="expandLevelAuto-input">Сколько уровней развернуть изначально:</label><br />
+								<input type="number" name="expandLevelAuto" id="expandLevelAuto-input" maxlength="3" 
+									size="2" required="required" min="0" value="{if $menu}{$menu.expandLevelAuto|escape}{else}0{/if}" />
+							</td>
+							<td class="ui-minor">
+								Определяет сколько уровней меню будет развёрнуто по умолчанию. Если это значение 0,
+								то будут развёрнуты все уровни.
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<label for="expandLevelMax-input">Сколько уровней развернуть максимум:</label><br />
+								<input type="number" name="expandLevelMax" id="expandLevelMax-input" maxlength="3" 
+									size="2" required="required" min="0" value="{if $menu}{$menu.expandLevelMax|escape}{else}0{/if}" />
+							</td>
+							<td class="ui-minor">
+								Определяет сколько уровней может развернуть посетитель. Если это значение 0, то
+								можно будет развернуть все уровни.
+							</td>
+						</tr>
+					</table>
+				</fc:tab>
+				
+				<fc:tab name="advanced">
+					<div class="ui-state-error box">
+						<em>Внимание!</em> Изменение этих параметров может привести к неправильной работе настроек
+						на вкладке «Упрощённые настройки».
+					</div>
+					<div>
+						<label for="template-input">Шаблон одного уровная меню:<sup>*</sup></label><br />
+						<textarea rows="10" cols="100" name="template" id="template-input" required="required"
+							style="width: 99%;">{if $menu}{$menu.template|escape}{else}
+&lt;ul class="\{$menuName} level-\{$level}"&gt;
+  \{foreach $items item}
+  &lt;li class="\{$menuName}__item\{if $item.isOpened} \{$menuName}__item_is_opened\{/if}\{if $item.isCurrent} \{$menuName}__item_is_current\{/if}"&gt;
+    &lt;a href="\{$item.url}" class="\{$menuName}__link"&gt;\{$item.caption}&lt;li&gt;
+  &lt;/li&gt;
+  \{/foreach}
+&lt;/ul&gt;{/if}
+						</textarea>
+					</div>
+				</fc:tab>
+
+			</fc:tabs>
+
+		</fc:tabwidget>
+		
+	</div>
+	
+	<div class="ui-button-box">
+		<button type="submit">{if 'edit' == $action}Сохранить{else}Создать{/if}</button>
+		<button type="button" onclick="history.back();">Отменить</button>
+	</div>
+
+</form>
