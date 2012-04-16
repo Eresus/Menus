@@ -119,7 +119,7 @@
 &lt;ul class="\{$menuName} level-\{$level}"&gt;
   \{foreach $items item}
   &lt;li class="\{$menuName}__item\{if $item.isOpened} \{$menuName}__item_is_opened\{/if}\{if $item.isCurrent} \{$menuName}__item_is_current\{/if}"&gt;
-    &lt;a href="\{$item.url}" class="\{$menuName}__link"&gt;\{$item.caption}&lt;li&gt;
+    &lt;a href="\{$item.url}" class="\{$menuName}__link"&gt;\{$item.caption}&lt;/a&gt;\{$item.submenu}
   &lt;/li&gt;
   \{/foreach}
 &lt;/ul&gt;{/if}
@@ -138,6 +138,7 @@
 							<dt>url</dt><dd>URL</dd>
 							<dt>isCurrent</dt><dd>«истина» если посетитель сейчас находится в этом разделе</dd>
 							<dt>isOpened</dt><dd>«истина» если посетитель сейчас находится в этом разделе или его подразделе</dd>
+							<dt>submenu</dt><dd>подменю пункта</dd>
 						</dl>
 					</div>
 				</fc:tab>

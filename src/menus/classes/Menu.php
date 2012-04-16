@@ -85,6 +85,14 @@ class Menus_Menu
 	protected $sectionsFilter;
 
 	/**
+	 * Шаблон одного уровня меню
+	 *
+	 * @var Menus_Template
+	 * @since 3.00
+	 */
+	protected $template;
+
+	/**
 	 * Конструктор меню
 	 *
 	 * @param Eresus    $Eresus
@@ -114,6 +122,9 @@ class Menus_Menu
 	 */
 	public function render()
 	{
+		$this->template = new Menus_Template();
+		$this->template->loadFromString($this->params['template']);
+
 		$this->detectRoot();
 		$path = $this->params['root'] > -1 ?
 			$this->ui->clientURL($this->params['root']) :
@@ -131,36 +142,6 @@ class Menus_Menu
 		return $html;
 	}
 	//-----------------------------------------------------------------------------
-
-	/**
-	 * Замена макросов
-	 *
-	 * @param string $template  Шаблон
-	 * @param array  $item      Элемент-источник данных
-	 *
-	 * @return string  HTML
-	 */
-	protected function replaceMacros($template, $item)
-	{
-		preg_match_all('|{%selected\?(.*?):(.*?)}|Ui', $template, $matches);
-		for ($i = 0; $i < count($matches[0]); $i++)
-		{
-			$template = str_replace($matches[0][$i], $item['is-selected']?$matches[1][$i]:$matches[2][$i],
-				$template);
-		}
-
-		preg_match_all('|{%parent\?(.*?):(.*?)}|Ui', $template, $matches);
-		for ($i = 0; $i < count($matches[0]); $i++)
-		{
-			$template = str_replace($matches[0][$i], $item['is-parent']?$matches[1][$i]:$matches[2][$i],
-				$template);
-		}
-
-		$template = replaceMacros($template, $item);
-
-		return $template;
-	}
-	//------------------------------------------------------------------------------
 
 	/**
 	 * Определяет идентифкатор корневого раздела меню
@@ -207,7 +188,6 @@ class Menus_Menu
 	{
 		$sections = $this->Eresus->sections;
 
-		$result = '';
 		if (strpos($path, $this->Eresus->root) !== false)
 		{
 			$path = substr($path, strlen($this->Eresus->root));
@@ -217,137 +197,45 @@ class Menus_Menu
 			$ownerId = $this->ui->id;
 		}
 		$rootItem = $sections->get($ownerId);
-		if ($this->isMainPage($rootItem))
+		if (0 == $rootItem['owner'] && 'main' == $rootItem['name'])
 		{
 			$path = 'main/';
 		}
 
-		$items = $sections->children($ownerId, $this->accessThreshold, $this->sectionsFilter);
+		$vars = array('menuName' => $this->params['name'], 'level' => $level);
+		$vars['items'] = $sections->children($ownerId, $this->accessThreshold, $this->sectionsFilter);
 
-		if (count($items))
+		$html = '';
+		if (count($vars['items']))
 		{
-			$result = array();
-			$counter = 1;
 
-			foreach ($items as $item)
+			foreach ($vars['items'] as &$item)
 			{
 				$item['level'] = $level;
-				$item['counter'] = $counter++;
-				if ($this->params['counterReset'] && $counter > $this->params['counterReset'])
-				{
-					$counter = 1;
-				}
+				$item['url'] = $this->buildURL($item, $path);
+				$item['isCurrent'] = $item['id'] == $this->ui->id;
+				$item['isOpened'] = !$item['is-selected'] && in_array($item['id'], $this->ids);
 
-				$result[] = $this->renderItem($item, $path);
+				// true если раздел находится в выбранной ветке
+				$inSelectedBranch = $item['isOpened'] || $item['isCurrent'];
+				// true если не достигнут максимальный уровень ручного развёртывания
+				$notMaxExpandLevel = !$this->params['expandLevelMax'] ||
+				$item['level'] < $this->params['expandLevelMax'];
+				// true если не достигнут максимальный уровень автоматического развёртывания
+				$notMaxAutoExpandLevel = !$this->params['expandLevelAuto'] ||
+				$item['level'] < $this->params['expandLevelAuto'];
+
+				if ($notMaxAutoExpandLevel || ($inSelectedBranch && $notMaxExpandLevel))
+				{
+					$item['submenu'] =
+						$this->renderBranch($item['id'], $path . $item['name'] . '/', $item['level'] + 1);
+				}
 			}
-			$result = implode($this->params['glue'], $result);
-			$result = array('level' => ($level), 'items' => $result);
-			$result = $this->replaceMacros($this->params['tmplList'], $result);
+			$html = $this->template->compile($vars);
 		}
-		return $result;
+		return $html;
 	}
 	//------------------------------------------------------------------------------
-
-	/**
-	 * Отрисовывает пункт меню
-	 *
-	 * @param array  $item     описание пункта меню
-	 * @param string $rootURL  корневой URL
-	 *
-	 * @return string
-	 *
-	 * @since 2.03
-	 */
-	protected function renderItem(array $item, $rootURL)
-	{
-		$item['is-main'] = $this->isMainPage($item);
-		$item['url'] = $this->buildURL($item, $rootURL);
-		$item['is-selected'] = $item['id'] == $this->ui->id;
-		$item['is-parent'] = !$item['is-selected'] && in_array($item['id'], $this->ids);
-
-		// true если раздел находится в выбранной ветке
-		$inSelectedBranch = $item['is-parent'] || $item['is-selected'];
-		// true если не достигнут максимальный уровень ручного развёртывания
-		$notMaxExpandLevel = !$this->params['expandLevelMax'] ||
-			$item['level'] < $this->params['expandLevelMax'];
-		// true если не достигнут максимальный уровень автоматического развёртывания
-		$notMaxAutoExpandLevel = !$this->params['expandLevelAuto'] ||
-			$item['level'] < $this->params['expandLevelAuto'];
-
-		if ($notMaxAutoExpandLevel || ($inSelectedBranch && $notMaxExpandLevel))
-		{
-			$item['submenu'] =
-				$this->renderBranch($item['id'], $rootURL . $item['name'] . '/', $item['level'] + 1);
-		}
-
-		$template = $this->getTemplate($item);
-
-		return $this->replaceMacros($template, $item);
-	}
-	//-----------------------------------------------------------------------------
-
-	/**
-	 * Возвращает true если переданный раздел — главная страница
-	 *
-	 * @param array $item
-	 *
-	 * @return bool
-	 *
-	 * @since 2.03
-	 */
-	protected function isMainPage(array $item)
-	{
-		return 'main' == $item['name'] && 0 == $item['owner'];
-	}
-	//-----------------------------------------------------------------------------
-
-	/**
-	 * Возвращает шаблон для пункта меню
-	 *
-	 * @param array $item  описание пункта меню
-	 *
-	 * @return string  HTML
-	 *
-	 * @since 2.03
-	 */
-	protected function getTemplate(array $item)
-	{
-		$template = $this->params['tmplItem'];
-
-		switch ($this->params['specialMode'])
-		{
-			/* только для выбранного пункта */
-			case 1:
-				if ($item['is-selected'])
-				{
-					$template = $this->params['tmplSpecial'];
-				}
-			break;
-
-			/* для выбранного пункта если выбран его подпункт */
-			case 2:
-				$currentPath = $this->Eresus->request['path'];
-				$itemPath = $this->ui->clientURL($item['id']);
-				$isItemChildOfCurrent = strpos($currentPath, $itemPath) === 0;
-				$isItemAndCurrentAreMain = $this->isMainPage($item) && $currentPath . 'main/' == $itemPath;
-				if ($isItemChildOfCurrent || $isItemAndCurrentAreMain)
-				{
-					$template = $this->params['tmplSpecial'];
-				}
-			break;
-
-			/* для пунктов, имеющих подпункты */
-			case 3:
-				if (count($this->Eresus->sections->branch_ids($item['id'])))
-				{
-					$template = $this->params['tmplSpecial'];
-				}
-			break;
-		}
-
-		return $template;
-	}
-	//-----------------------------------------------------------------------------
 
 	/**
 	 * Строит URL для пункта меню

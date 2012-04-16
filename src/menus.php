@@ -165,10 +165,8 @@ class Menus extends Plugin
 	 */
 	public function adminRender()
 	{
-		global $Eresus, $page;
-
 		$result = '';
-		$ctrl = new Menus_Controller_Admin($this, $page);
+		$ctrl = new Menus_Controller_Admin($this, $GLOBALS['page']);
 		switch (true)
 		{
 			case !is_null(arg('id')):
@@ -201,13 +199,13 @@ class Menus extends Plugin
 	 * @param string $url
 	 *
 	 * @return void
+	 *
+	 * @SuppressWarnings(PHPMD.UnusedFormalParameters)
 	 */
 	public function clientOnURLSplit($item, $url)
 	{
 		$this->pages[] = $item;
 		$this->ids[] = $item['id'];
-		return;
-		$url = $url; // PHPMD hack
 	}
 	//------------------------------------------------------------------------------
 

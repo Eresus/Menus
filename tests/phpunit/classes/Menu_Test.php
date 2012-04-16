@@ -43,52 +43,6 @@ require_once TESTS_SRC_DIR . '/menus/classes/Menu.php';
 class Menu_Test extends PHPUnit_Framework_TestCase
 {
 	/**
-	 * @covers Menus_Menu::isMainPage
-	 */
-	public function test_isMainPage()
-	{
-		$m_isMainPage = new ReflectionMethod('Menus_Menu', 'isMainPage');
-		$m_isMainPage->setAccessible(true);
-		$menu = $this->getMockBuilder('Menus_Menu')->disableOriginalConstructor()->getMock();
-
-		$this->assertTrue($m_isMainPage->invoke($menu, array('name' => 'main', 'owner' => 0)));
-		$this->assertFalse($m_isMainPage->invoke($menu, array('name' => 'main', 'owner' => 1)));
-		$this->assertFalse($m_isMainPage->invoke($menu, array('name' => 'foo', 'owner' => 0)));
-		$this->assertFalse($m_isMainPage->invoke($menu, array('name' => 'foo', 'owner' => 1)));
-	}
-	//-----------------------------------------------------------------------------
-
-	/**
-	 * @covers Menus_Menu::getTemplate
-	 */
-	public function test_getTemplate()
-	{
-		$m_getTemplate = new ReflectionMethod('Menus_Menu', 'getTemplate');
-		$m_getTemplate->setAccessible(true);
-
-		$params = array(
-			'specialMode' => 0,
-			'tmplItem' => 'foo',
-			'tmplSpecial' => 'bar',
-		);
-		$menu = new Menus_Menu(new Eresus, new TClientUI, $params, array());
-		$item = array();
-		$this->assertEquals('foo', $m_getTemplate->invoke($menu, $item));
-
-		$params = array(
-			'specialMode' => 1,
-			'tmplItem' => 'foo',
-			'tmplSpecial' => 'bar',
-		);
-		$menu = new Menus_Menu(new Eresus, new TClientUI, $params, array());
-		$item = array('is-selected' => false);
-		$this->assertEquals('foo', $m_getTemplate->invoke($menu, $item));
-		$item = array('is-selected' => true);
-		$this->assertEquals('bar', $m_getTemplate->invoke($menu, $item));
-	}
-	//-----------------------------------------------------------------------------
-
-	/**
 	 * @covers Menus_Menu::buildURL
 	 */
 	public function test_buildURL()
@@ -142,63 +96,6 @@ class Menu_Test extends PHPUnit_Framework_TestCase
 		);
 		$this->assertEquals('http://example.org/bar.html', $m_buildURL->invoke($menu, $item, 'foo/'));
 
-	}
-	//-----------------------------------------------------------------------------
-
-	/**
-	 * @link http://bugs.eresus.ru/view.php?id=676
-	 * @covers Menus_Menu::getTemplate
-	 */
-	public function test_issue676()
-	{
-		$m_getTemplate = new ReflectionMethod('Menus_Menu', 'getTemplate');
-		$m_getTemplate->setAccessible(true);
-
-		$Eresus = new Eresus;
-		$Eresus->request = array('path' => 'http://example.org/');
-
-		$ui = $this->getMock('TClientUI', array('clientURL'));
-		$ui->expects($this->once())->method('clientURL')->with(1)->
-			will($this->returnValue('http://example.org/main/'));
-
-		$params = array(
-			'specialMode' => 2,
-			'tmplItem' => 'foo',
-			'tmplSpecial' => 'bar',
-		);
-		$menu = new Menus_Menu($Eresus, $ui, $params, array('1'));
-		$item = array('id' => 1, 'owner' => 0, 'name' => 'main');
-		$this->assertEquals('bar', $m_getTemplate->invoke($menu, $item));
-	}
-	//-----------------------------------------------------------------------------
-
-	/**
-	 * Провал теста — сообщение о необъявленной переменной
-	 *
-	 * @link http://bugs.eresus.ru/view.php?id=778
-	 * @covers Menus_Menu::renderItem
-	 */
-	public function test_issue778()
-	{
-		$m_renderItem = new ReflectionMethod('Menus_Menu', 'renderItem');
-		$m_renderItem->setAccessible(true);
-
-		$ui = new TClientUI();
-		$ui->id = 1;
-
-		$params = array(
-			'expandLevelMax' => 1,
-			'expandLevelAuto' => 1,
-		);
-
-		$menu = $this->getMock(
-			'Menus_Menu',
-			array('isMainPage', 'buildURL', 'renderBranch', 'getTemplate', 'replaceMacros'),
-			array(new Eresus, $ui, $params, array('1'))
-		);
-
-		$item = array('id' => 1, 'level' => 1);
-		$m_renderItem->invoke($menu, $item, 'http://example.org/');
 	}
 	//-----------------------------------------------------------------------------
 }
