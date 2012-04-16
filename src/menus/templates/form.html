@@ -125,6 +125,21 @@
 &lt;/ul&gt;{/if}
 						</textarea>
 					</div>
+					<div>
+						Переменные, доступные в шаблоне:
+						<dl>
+							<dt>menuName</dt><dd>имя меню</dd>
+							<dt>level</dt><dd>уровень вложенности меню</dd>
+							<dt>items</dt><dd>массив пунтков меню</dd>
+						</dl>
+						Каждый элемент массива <b>items</b> имеет свойства:
+						<dl>
+							<dt>caption</dt><dd>название</dd>
+							<dt>url</dt><dd>URL</dd>
+							<dt>isCurrent</dt><dd>«истина» если посетитель сейчас находится в этом разделе</dd>
+							<dt>isOpened</dt><dd>«истина» если посетитель сейчас находится в этом разделе или его подразделе</dd>
+						</dl>
+					</div>
 				</fc:tab>
 
 			</fc:tabs>
@@ -135,7 +150,7 @@
 	
 	<div class="ui-button-box">
 		<button type="submit">{if 'edit' == $action}Сохранить{else}Создать{/if}</button>
-		<button type="button" onclick="history.back();">Отменить</button>
+		<button type="button" onclick="window.location='admin.php?mod=ext-menus';">Отменить</button>
 	</div>
 
 </form>
