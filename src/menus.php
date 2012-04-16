@@ -169,40 +169,22 @@ class Menus extends Plugin
 
 		$result = '';
 		$ctrl = new Menus_Controller_Admin($this, $page);
-		if (!is_null(arg('id')))
-		{
-			$item = $Eresus->db->selectItem($this->table['name'],
-				"`".$this->table['key']."` = '".arg('id', 'dbsafe')."'");
-			$page->title .= empty($item['caption'])?'':' - '.$item['caption'];
-		}
 		switch (true)
 		{
-			case !is_null(arg('update')):
-				$result = $this->update();
-			break;
-			case !is_null(arg('toggle')):
-				$result = $this->toggle(arg('toggle', 'dbsafe'));
-			break;
-			case !is_null(arg('delete')):
-				$result = $this->delete(arg('delete', 'dbsafe'));
-			break;
-			case !is_null(arg('up')):
-				$result = $this->table['sortDesc'] ?
-					$this->down(arg('up', 'dbsafe')) :
-					$this->up(arg('up', 'dbsafe'));
-			break;
-			case !is_null(arg('down')):
-				$result = $this->table['sortDesc'] ?
-					$this->up(arg('down', 'dbsafe')) :
-					$this->down(arg('down', 'dbsafe'));
-			break;
-
 			case !is_null(arg('id')):
 				$result = $ctrl->editAction();
 				break;
 
 			case arg('action') == 'create':
 				$result = $ctrl->addAction();
+				break;
+
+			case !is_null(arg('toggle')):
+				$ctrl->toggleAction(arg('toggle', 'int'));
+				break;
+
+			case !is_null(arg('delete')):
+				$ctrl->deleteAction(arg('delete', 'dbsafe'));
 				break;
 
 			default:
@@ -287,47 +269,6 @@ class Menus extends Plugin
 	//-----------------------------------------------------------------------------
 
 	/**
-	 * Обновление меню
-	 *
-	 * @return void
-	 *
-	 * @uses Eresus
-	 * @uses HTTP::redirect()
-	 * @uses arg()
-	 */
-	private function update()
-	{
-		global $Eresus;
-
-		$item = $Eresus->db->selectItem($this->table['name'], "`id`='".arg('update', 'int')."'");
-
-		$item['name'] = arg('name', 'word');
-		$item['caption'] = arg('caption', 'dbsafe');
-		$item['root'] = arg('root', 'int');
-		$item['rootLevel'] = arg('rootLevel', 'int');
-		$item['expandLevelAuto'] = arg('expandLevelAuto', 'int');
-		$item['expandLevelMax'] = arg('expandLevelMax', 'int');
-		$item['glue'] = arg('glue', 'dbsafe');
-		$item['tmplList'] = arg('tmplList', 'dbsafe');
-		$item['tmplItem'] = arg('tmplItem', 'dbsafe');
-		$item['tmplSpecial'] = arg('tmplSpecial', 'dbsafe');
-		$item['specialMode'] = arg('specialMode', 'dbsafe');
-		$item['invisible'] = arg('invisible', 'int');
-		$item['counterReset'] = arg('counterReset', 'int');
-
-		if ($Eresus->db->selectItem($this->table['name'],
-				"`name`='{$item['name']}' AND `id` <> {$item['id']}"))
-		{
-			ErrorMessage('Меню с таким именем уже есть');
-			HTTP::goback();
-		}
-
-		$Eresus->db->updateItem($this->table['name'], $item, "`id`='".$item['id']."'");
-		HTTP::redirect(arg('submitURL'));
-	}
-	//------------------------------------------------------------------------------
-
-	/**
 	 *
 	 * @param unknown_type $table
 	 *
@@ -341,50 +282,6 @@ class Menus extends Plugin
 
 		$Eresus->db->query('CREATE TABLE IF NOT EXISTS `'.$Eresus->db->prefix.$table['name'].
 			'`'.$table['sql']);
-	}
-	//-----------------------------------------------------------------------------
-
-	/**
-	 * Обрабатывает запрос на переключение активности меню
-	 *
-	 * @param int $id  ID меню
-	 *
-	 * @return void
-	 *
-	 * @uses DB::getHandler
-	 * @uses DB::execute
-	 * @uses HTTP::redirect
-	 */
-	private function toggle($id)
-	{
-		global $page;
-
-		$q = DB::getHandler()->createUpdateQuery();
-		$e = $q->expr;
-		$q->update($this->table['name'])
-			->set('active', $e->not('active'))
-			->where($e->eq('id', $q->bindValue($id, null, PDO::PARAM_INT)));
-		DB::execute($q);
-
-		HTTP::redirect(str_replace('&amp;', '&', $page->url()));
-	}
-	//-----------------------------------------------------------------------------
-
-	/**
-	 * Удаляет меню
-	 *
-	 * @param int $id  идентификатор удаляемого меню
-	 *
-	 * @return void
-	 *
-	 * @since ?.??
-	 */
-	private function delete($id)
-	{
-		global $Eresus, $page;
-
-		$Eresus->db->delete($this->table['name'], "`".$this->table['key']."`='".$id."'");
-		HTTP::redirect(str_replace('&amp;', '&', $page->url()));
 	}
 	//-----------------------------------------------------------------------------
 
