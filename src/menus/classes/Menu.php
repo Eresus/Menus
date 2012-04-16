@@ -197,7 +197,7 @@ class Menus_Menu
 			$ownerId = $this->ui->id;
 		}
 		$rootItem = $sections->get($ownerId);
-		if (0 == $rootItem['owner'] && 'main' == $rootItem['name'])
+		if ($rootItem && 0 == $rootItem['owner'] && 'main' == $rootItem['name'])
 		{
 			$path = 'main/';
 		}
@@ -214,7 +214,7 @@ class Menus_Menu
 				$item['level'] = $level;
 				$item['url'] = $this->buildURL($item, $path);
 				$item['isCurrent'] = $item['id'] == $this->ui->id;
-				$item['isOpened'] = !$item['is-selected'] && in_array($item['id'], $this->ids);
+				$item['isOpened'] = !$item['isCurrent'] && in_array($item['id'], $this->ids);
 
 				// true если раздел находится в выбранной ветке
 				$inSelectedBranch = $item['isOpened'] || $item['isCurrent'];

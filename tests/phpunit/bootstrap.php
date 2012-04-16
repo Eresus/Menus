@@ -53,3 +53,7 @@ class TClientUI
 {
 	public $id = 1;
 }
+
+class Template
+{
+}
