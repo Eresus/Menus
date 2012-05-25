@@ -43,48 +43,41 @@ require_once TESTS_SRC_DIR . '/menus/classes/Menu.php';
 class Menu_Test extends PHPUnit_Framework_TestCase
 {
 	/**
-	 * @covers Menus_Menu::isMainPage
+	 * @covers Menus_Menu::renderBranch
 	 */
-	public function test_isMainPage()
+	public function test_renderBranch()
 	{
-		$m_isMainPage = new ReflectionMethod('Menus_Menu', 'isMainPage');
-		$m_isMainPage->setAccessible(true);
-		$menu = $this->getMockBuilder('Menus_Menu')->disableOriginalConstructor()->getMock();
-
-		$this->assertTrue($m_isMainPage->invoke($menu, array('name' => 'main', 'owner' => 0)));
-		$this->assertFalse($m_isMainPage->invoke($menu, array('name' => 'main', 'owner' => 1)));
-		$this->assertFalse($m_isMainPage->invoke($menu, array('name' => 'foo', 'owner' => 0)));
-		$this->assertFalse($m_isMainPage->invoke($menu, array('name' => 'foo', 'owner' => 1)));
-	}
-	//-----------------------------------------------------------------------------
-
-	/**
-	 * @covers Menus_Menu::getTemplate
-	 */
-	public function test_getTemplate()
-	{
-		$m_getTemplate = new ReflectionMethod('Menus_Menu', 'getTemplate');
-		$m_getTemplate->setAccessible(true);
-
-		$params = array(
-			'specialMode' => 0,
-			'tmplItem' => 'foo',
-			'tmplSpecial' => 'bar',
+		$m_renderBranch = new ReflectionMethod('Menus_Menu', 'renderBranch');
+		$m_renderBranch->setAccessible(true);
+		$params = array('name' => 'menuFoo', 'expandLevelAuto' => 0, 'expandLevelMax' => 0);
+		$ids = array();
+		$Eresus = new Eresus;
+		$Eresus->root = 'http://example.org/';
+		$Eresus->sections = $this->getMock('stdClass', array('get', 'children'));
+		$map = array(
+			array(0, array()),
+			array(1, array('id' => 1, 'owner' => 0, 'name' => 'main', 'type' => 'default')),
 		);
-		$menu = new Menus_Menu($params, array(), '');
-		$item = array();
-		$this->assertEquals('foo', $m_getTemplate->invoke($menu, $item));
-
-		$params = array(
-			'specialMode' => 1,
-			'tmplItem' => 'foo',
-			'tmplSpecial' => 'bar',
+		$Eresus->sections->expects($this->any())->method('get')->will($this->returnValueMap($map));
+		$map = array(
+				array(0, null, null, array(
+					array('id' => 1, 'owner' => 0, 'name' => 'main', 'type' => 'default'))
+				),
+				array(1, null, null, array()),
 		);
-		$menu = new Menus_Menu($params, array(), '');
-		$item = array('is-selected' => false);
-		$this->assertEquals('foo', $m_getTemplate->invoke($menu, $item));
-		$item = array('is-selected' => true);
-		$this->assertEquals('bar', $m_getTemplate->invoke($menu, $item));
+		$Eresus->sections->expects($this->any())->method('children')->will($this->returnValueMap($map));
+		$ui = new TClientUI;
+		$ui->id = 0;
+		$menu = new Menus_Menu($Eresus, $ui, $params, $ids);
+
+		$template = $this->getMock('Template', array('compile'));
+		$template->expects($this->once())->method('compile');
+
+		$p_template = new ReflectionProperty('Menus_Menu', 'template');
+		$p_template->setAccessible(true);
+		$p_template->setValue($menu, $template);
+
+		$m_renderBranch->invoke($menu, -1, 'http://example.org/');
 	}
 	//-----------------------------------------------------------------------------
 
@@ -97,8 +90,9 @@ class Menu_Test extends PHPUnit_Framework_TestCase
 		$m_buildURL->setAccessible(true);
 		$params = array();
 		$ids = array();
-		$rootURL = 'http://example.org/';
-		$menu = new Menus_Menu($params, $ids, $rootURL);
+		$Eresus = new Eresus;
+		$Eresus->root = 'http://example.org/';
+		$menu = new Menus_Menu($Eresus, new TClientUI, $params, $ids);
 
 		$item = array(
 			'name' => 'main',
@@ -125,13 +119,13 @@ class Menu_Test extends PHPUnit_Framework_TestCase
 		$sections->expects($this->once())->method('get')->with(123)->will($this->returnValue(array(
 			'content' => 'foo'
 		)));
-		$GLOBALS['Eresus'] = new stdClass;
-		$GLOBALS['Eresus']->sections = $sections;
+		$Eresus->sections = $sections;
 
-		$page = $this->getMock('stdClass', array('replaceMacros'));
-		$page->expects($this->once())->method('replaceMacros')->with('foo')->
+		$ui = $this->getMock('TClientUI', array('replaceMacros'));
+		$ui->expects($this->once())->method('replaceMacros')->with('foo')->
 			will($this->returnValue('/bar.html'));
-		$GLOBALS['page'] = $page;
+
+		$menu = new Menus_Menu($Eresus, $ui, $params, $ids);
 
 		$item = array(
 			'id' => 123,
@@ -141,64 +135,6 @@ class Menu_Test extends PHPUnit_Framework_TestCase
 		);
 		$this->assertEquals('http://example.org/bar.html', $m_buildURL->invoke($menu, $item, 'foo/'));
 
-	}
-	//-----------------------------------------------------------------------------
-
-	/**
-	 * @link http://bugs.eresus.ru/view.php?id=676
-	 * @covers Menus_Menu::getTemplate
-	 */
-	public function test_issue676()
-	{
-		$m_getTemplate = new ReflectionMethod('Menus_Menu', 'getTemplate');
-		$m_getTemplate->setAccessible(true);
-
-		$GLOBALS['Eresus'] = new stdClass();
-		$GLOBALS['Eresus']->request = array('path' => 'http://example.org/');
-
-		$page = $this->getMock('stdClass', array('clientURL'));
-		$page->expects($this->once())->method('clientURL')->with(1)->
-			will($this->returnValue('http://example.org/main/'));
-		$GLOBALS['page'] = $page;
-
-		$params = array(
-			'specialMode' => 2,
-			'tmplItem' => 'foo',
-			'tmplSpecial' => 'bar',
-		);
-		$menu = new Menus_Menu($params, array('1'), '');
-		$item = array('id' => 1, 'owner' => 0, 'name' => 'main');
-		$this->assertEquals('bar', $m_getTemplate->invoke($menu, $item));
-	}
-	//-----------------------------------------------------------------------------
-
-	/**
-	 * Провал теста — сообщение о необъявленной переменной
-	 *
-	 * @link http://bugs.eresus.ru/view.php?id=778
-	 * @covers Menus_Menu::renderItem
-	 */
-	public function test_issue778()
-	{
-		$m_renderItem = new ReflectionMethod('Menus_Menu', 'renderItem');
-		$m_renderItem->setAccessible(true);
-
-		$GLOBALS['page'] = new stdClass();
-		$GLOBALS['page']->id = 1;
-
-		$params = array(
-			'expandLevelMax' => 1,
-			'expandLevelAuto' => 1,
-		);
-
-		$menu = $this->getMock(
-			'Menus_Menu',
-			array('isMainPage', 'buildURL', 'renderBranch', 'getTemplate', 'replaceMacros'),
-			array($params, array('1'), '')
-		);
-
-		$item = array('id' => 1, 'level' => 1);
-		$m_renderItem->invoke($menu, $item, 'http://example.org/');
 	}
 	//-----------------------------------------------------------------------------
 }
