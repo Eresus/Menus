@@ -113,7 +113,7 @@
 						на вкладке «Упрощённые настройки».
 					</div>
 					<div>
-						<label for="template-input">Шаблон одного уровная меню:<sup>*</sup></label><br />
+						<label for="template-input">Шаблон одного уровня меню:<sup>*</sup></label><br />
 						<textarea rows="10" cols="100" name="template" id="template-input" required="required"
 							style="width: 99%;">{if $menu}{$menu.template|escape}{else}
 &lt;ul class="\{$menuName} level-\{$level}"&gt;
@@ -130,7 +130,7 @@
 						<dl>
 							<dt>menuName</dt><dd>имя меню</dd>
 							<dt>level</dt><dd>уровень вложенности меню</dd>
-							<dt>items</dt><dd>массив пунтков меню</dd>
+							<dt>items</dt><dd>массив пунктов меню</dd>
 						</dl>
 						Каждый элемент массива <b>items</b> имеет свойства:
 						<dl>

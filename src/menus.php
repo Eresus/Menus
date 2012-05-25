@@ -268,7 +268,7 @@ class Menus extends Plugin
 
 	/**
 	 *
-	 * @param unknown_type $table
+	 * @param array $table
 	 *
 	 * @return void
 	 *
