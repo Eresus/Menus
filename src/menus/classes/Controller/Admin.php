@@ -93,7 +93,7 @@ class Menus_Controller_Admin
 	 */
 	public function addAction()
 	{
-		$req = $GLOBALS['Eresus']->request;
+		$req = Eresus_CMS::getLegacyKernel()->request;
 
 		if ('POST' == $req['method'])
 		{
@@ -148,7 +148,7 @@ class Menus_Controller_Admin
 			return 'Такое меню не найдено.';
 		}
 
-		$req = $GLOBALS['Eresus']->request;
+		$req = Eresus_CMS::getLegacyKernel()->request;
 
 		if ('POST' == $req['method'])
 		{
@@ -231,7 +231,7 @@ class Menus_Controller_Admin
 	private function adminSectionBranch($owner = 0, $level = 0)
 	{
 		$result = array();
-		$items = $GLOBALS['Eresus']->sections->children($owner, GUEST, SECTIONS_ACTIVE);
+		$items = Eresus_CMS::getLegacyKernel()->sections->children($owner, GUEST, SECTIONS_ACTIVE);
 		if (count($items))
 		{
 			foreach ($items as $item)

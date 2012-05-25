@@ -166,7 +166,7 @@ class Menus extends Plugin
 	public function adminRender()
 	{
 		$result = '';
-		$ctrl = new Menus_Controller_Admin($this, $GLOBALS['page']);
+		$ctrl = new Menus_Controller_Admin($this, Eresus_Kernel::app()->getPage());
 		switch (true)
 		{
 			case !is_null(arg('id')):
@@ -217,7 +217,7 @@ class Menus extends Plugin
 	 */
 	public function clientOnPageRender($text)
 	{
-		$Eresus = $GLOBALS['Eresus'];
+		$Eresus = Eresus_CMS::getLegacyKernel();
 
 		preg_match_all('/\$\(Menus:(.+)?\)/Usi', $text, $menus, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
 		$delta = 0;
@@ -234,7 +234,7 @@ class Menus extends Plugin
 			$params = $this->dbItem('', $menus[$i][1][0], 'name');
 			if ($params && isset($params['active']) && $params['active'])
 			{
-				$menu = new Menus_Menu($Eresus, $GLOBALS['page'], $params, $this->ids);
+				$menu = new Menus_Menu($Eresus, Eresus_Kernel::app()->getPage(), $params, $this->ids);
 				$html = $menu->render();
 				$text = substr_replace($text, $html, $menus[$i][0][1]+$delta, strlen($menus[$i][0][0]));
 				$delta += strlen($html) - strlen($menus[$i][0][0]);
@@ -249,10 +249,9 @@ class Menus extends Plugin
 	 */
 	public function adminOnMenuRender()
 	{
-		global $page;
-
-		$page->addMenuItem(admExtensions, array ('access'  => ADMIN, 'link'  => $this->name,
-			'caption'  => $this->title, 'hint'  => $this->description));
+		Eresus_Kernel::app()->getPage()->addMenuItem(admExtensions,
+			array ('access' => ADMIN, 'link' => $this->name, 'caption' => $this->title,
+				'hint' => $this->description));
 	}
 	//------------------------------------------------------------------------------
 
@@ -276,7 +275,7 @@ class Menus extends Plugin
 	 */
 	private function createTable($table)
 	{
-		global $Eresus;
+		$Eresus = Eresus_CMS::getLegacyKernel();
 
 		$Eresus->db->query('CREATE TABLE IF NOT EXISTS `'.$Eresus->db->prefix.$table['name'].
 			'`'.$table['sql']);
