@@ -128,7 +128,6 @@ class Menus_Menu
         /* Определяем допустимый уровень доступа */
         $user = $this->Eresus->user;
         $this->accessThreshold = $user['auth'] ? $user['access'] : GUEST;
-
         // Определяем условия фильтрации
         $this->sectionsFilter = SECTIONS_ACTIVE | ($this->params['invisible'] ? 0 : SECTIONS_VISIBLE);
 
@@ -204,8 +203,9 @@ class Menus_Menu
 
             foreach ($vars['items'] as &$item)
             {
+                $section = new Menus_Site_Section($item);
                 $item['level'] = $level;
-                $item['url'] = $this->buildURL($item, $path);
+                $item['url'] = $section->getUrl();
                 $item['isCurrent'] = $item['id'] == $this->ui->id;
                 $item['isOpened'] = !$item['isCurrent'] && in_array($item['id'], $this->ids);
 
@@ -227,36 +227,6 @@ class Menus_Menu
             $html = $this->template->compile($vars);
         }
         return $html;
-    }
-
-    /**
-     * Строит URL для пункта меню
-     *
-     * @param array $item     описание пункта меню
-     * @param string $rootURL  корневой URL
-     *
-     * @return string
-     *
-     * @since 2.03
-     */
-    protected function buildURL(array $item, $rootURL)
-    {
-        /* У разделов типа 'url' собственный механизм построения URL */
-        if ($item['type'] == 'url')
-        {
-            $item = $this->Eresus->sections->get($item['id']);
-            $url = $this->ui->replaceMacros($item['content']);
-            if (substr($url, 0, 1) == '/')
-            {
-                $url = $this->Eresus->root . substr($url, 1);
-            }
-        }
-        else
-        {
-            $url = $this->Eresus->root . $rootURL . ($item['name'] == 'main' ? '' : $item['name'] . '/');
-        }
-
-        return $url;
     }
 }
 
