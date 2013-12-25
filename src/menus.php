@@ -2,8 +2,6 @@
 /**
  * Menus
  *
- * Управление меню
- *
  * @version ${product.version}
  *
  * @copyright 2007, Eresus Group, http://eresus.ru/
@@ -24,8 +22,6 @@
  * информации ознакомьтесь со Стандартной Общественной Лицензией GNU.
  *
  * @package Menus
- *
- * $Id$
  */
 
 /**
@@ -35,74 +31,73 @@
  */
 class Menus extends Plugin
 {
-	/**
-	 * Название плагина
-	 *
-	 * @var string
-	 */
-	public $title = 'Управление меню';
+    /**
+     * Название плагина
+     *
+     * @var string
+     */
+    public $title = 'Управление меню';
 
-	/**
-	 * Тип плагина
-	 *
-	 * @var string
-	 */
-	public $type = 'client,admin';
+    /**
+     * Тип плагина
+     *
+     * @var string
+     */
+    public $type = 'client,admin';
 
-	/**
-	 * Версия плагина
-	 *
-	 * @var string
-	 */
-	public $version = '${product.version}';
+    /**
+     * Версия плагина
+     *
+     * @var string
+     */
+    public $version = '${product.version}';
 
-	/**
-	 * Требуемая версия ядра
-	 * @var string
-	 */
-	public $kernel = '3.00b';
+    /**
+     * Требуемая версия ядра
+     * @var string
+     */
+    public $kernel = '3.00b';
 
-	/**
-	 * Описание плагина
-	 *
-	 * @var string
-	 */
-	public $description = 'Менеджер меню';
+    /**
+     * Описание плагина
+     *
+     * @var string
+     */
+    public $description = 'Менеджер меню';
 
-	/**
-	 * Настройки
-	 *
-	 * @var array
-	 */
-	public $settings = array(
-	);
+    /**
+     * Настройки
+     *
+     * @var array
+     */
+    public $settings = array();
 
-	/**
-	 * Описание таблицы БД и списка меню
-	 *
-	 * @var array
-	 */
-	public $table = array (
-		'name' => 'menus',
-		'key'=> 'id',
-		'sortMode' => 'id',
-		'sortDesc' => false,
-		'columns' => array(
-			array('name' => 'caption', 'caption' => 'Название'),
-			array('name' => 'name', 'caption' => 'Имя'),
-		),
-		'controls' => array (
-			'delete' => '',
-			'edit' => '',
-			'toggle' => '',
-		),
-		'tabs' => array(
-			'width'=>'180px',
-			'items'=>array(
-				array('caption'=>'Создать меню', 'name'=>'action', 'value'=>'create')
-			),
-		),
-		'sql' => "(
+    /**
+     * Описание таблицы БД и списка меню
+     *
+     * @var array
+     */
+    public $table = array(
+        'name' => 'menus',
+        'key' => 'id',
+        'sortMode' => 'id',
+        'sortDesc' => false,
+        'columns' => array(
+            array('name' => 'caption', 'caption' => 'Название'),
+            array('name' => 'name', 'caption' => 'Имя'),
+        ),
+        'controls' => array(
+            'delete' => '',
+            'edit' => '',
+            'toggle' => '',
+        ),
+        'tabs' => array(
+            'width' => '180px',
+            'items' => array(
+                array('caption' => 'Создать меню', 'name' => 'action', 'value' => 'create')
+            ),
+        ),
+        'sql' => "(
 			`id` int(10) unsigned NOT NULL auto_increment,
 			`name` varchar(255) default NULL,
 			`caption` varchar(255) default NULL,
@@ -117,169 +112,160 @@ class Menus extends Plugin
 			KEY `client` (`name`, `active`),
 			KEY `admin` (`name`)
 		);",
-	);
+    );
 
-	/**
-	 * Путь по разделам к текущему разделу
-	 *
-	 * @var array
-	 */
-	private $pages = array();
+    /**
+     * Путь по разделам к текущему разделу
+     *
+     * @var array
+     */
+    private $pages = array();
 
-	/**
-	 * Путь по разделам к текущему разделу (только идентификаторы)
-	 *
-	 * @var array
-	 */
-	private $ids = array();
+    /**
+     * Путь по разделам к текущему разделу (только идентификаторы)
+     *
+     * @var array
+     */
+    private $ids = array();
 
-	/**
-	 * Конструктор
-	 *
-	 * @return Menus
-	 */
-	public function __construct()
-	{
-		parent::__construct();
-		$this->listenEvents('clientOnURLSplit', 'clientOnPageRender', 'adminOnMenuRender');
-	}
-	//------------------------------------------------------------------------------
+    /**
+     * Конструктор
+     *
+     * @return Menus
+     */
+    public function __construct()
+    {
+        parent::__construct();
+        $this->listenEvents('clientOnURLSplit', 'clientOnPageRender', 'adminOnMenuRender');
+    }
 
-	/**
-	 * Возвращает путь к директории файлов плагина
-	 *
-	 * @return string
-	 *
-	 * @since 3.00
-	 */
-	public function getCodeDir()
-	{
-		return $this->dirCode;
-	}
-	//-----------------------------------------------------------------------------
+    /**
+     * Возвращает путь к директории файлов плагина
+     *
+     * @return string
+     *
+     * @since 3.00
+     */
+    public function getCodeDir()
+    {
+        return $this->dirCode;
+    }
 
-	/**
-	 * Вывод АИ плагина
-	 *
-	 * @return string  HTML
-	 */
-	public function adminRender()
-	{
-		$result = '';
-		$ctrl = new Menus_Controller_Admin($this, Eresus_Kernel::app()->getPage());
-		switch (true)
-		{
-			case !is_null(arg('id')):
-				$result = $ctrl->editAction();
-				break;
+    /**
+     * Вывод АИ плагина
+     *
+     * @return string  HTML
+     */
+    public function adminRender()
+    {
+        $result = '';
+        $ctrl = new Menus_Controller_Admin($this, Eresus_Kernel::app()->getPage());
+        switch (true)
+        {
+            case !is_null(arg('id')):
+                $result = $ctrl->editAction();
+                break;
 
-			case arg('action') == 'create':
-				$result = $ctrl->addAction();
-				break;
+            case arg('action') == 'create':
+                $result = $ctrl->addAction();
+                break;
 
-			case !is_null(arg('toggle')):
-				$ctrl->toggleAction(arg('toggle', 'int'));
-				break;
+            case !is_null(arg('toggle')):
+                $ctrl->toggleAction(arg('toggle', 'int'));
+                break;
 
-			case !is_null(arg('delete')):
-				$ctrl->deleteAction(arg('delete', 'dbsafe'));
-				break;
+            case !is_null(arg('delete')):
+                $ctrl->deleteAction(arg('delete', 'dbsafe'));
+                break;
 
-			default:
-				$result = $ctrl->listAction();
-		}
-		return $result;
-	}
-	//------------------------------------------------------------------------------
+            default:
+                $result = $ctrl->listAction();
+        }
+        return $result;
+    }
 
-	/**
-	 * Сбор информации о текущем разделе
-	 *
-	 * @param array  $item
-	 * @param string $url
-	 *
-	 * @return void
-	 *
-	 * @SuppressWarnings(PHPMD.UnusedFormalParameters)
-	 */
-	public function clientOnURLSplit($item, $url)
-	{
-		$this->pages[] = $item;
-		$this->ids[] = $item['id'];
-	}
-	//------------------------------------------------------------------------------
+    /**
+     * Сбор информации о текущем разделе
+     *
+     * @param array $item
+     * @param string $url
+     *
+     * @return void
+     *
+     * @SuppressWarnings(PHPMD.UnusedFormalParameters)
+     */
+    public function clientOnURLSplit($item, $url)
+    {
+        $this->pages[] = $item;
+        $this->ids[] = $item['id'];
+    }
 
-	/**
-	 * Поиск и подстановка меню
-	 *
-	 * @param string $text
-	 * @return string
-	 */
-	public function clientOnPageRender($text)
-	{
-		$Eresus = Eresus_CMS::getLegacyKernel();
+    /**
+     * Поиск и подстановка меню
+     *
+     * @param string $text
+     * @return string
+     */
+    public function clientOnPageRender($text)
+    {
+        $Eresus = Eresus_CMS::getLegacyKernel();
 
-		preg_match_all('/\$\(Menus:(.+)?\)/Usi', $text, $menus, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
-		$delta = 0;
+        preg_match_all('/\$\(Menus:(.+)?\)/Usi', $text, $menus, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
+        $delta = 0;
 
-		$relative = substr($Eresus->request['url'], strlen($Eresus->root), 5);
+        $relative = substr($Eresus->request['url'], strlen($Eresus->root), 5);
 
-		if ($relative && $relative != 'main/')
-		{
-			array_shift($this->ids);
-		}
+        if ($relative && $relative != 'main/')
+        {
+            array_shift($this->ids);
+        }
 
-		for ($i = 0; $i < count($menus); $i++)
-		{
-			$params = $this->dbItem('', $menus[$i][1][0], 'name');
-			if ($params && isset($params['active']) && $params['active'])
-			{
-				$menu = new Menus_Menu($Eresus, Eresus_Kernel::app()->getPage(), $params, $this->ids);
-				$html = $menu->render();
-				$text = substr_replace($text, $html, $menus[$i][0][1]+$delta, strlen($menus[$i][0][0]));
-				$delta += strlen($html) - strlen($menus[$i][0][0]);
-			}
-		}
-		return $text;
-	}
-	//------------------------------------------------------------------------------
+        for ($i = 0; $i < count($menus); $i++)
+        {
+            $params = $this->dbItem('', $menus[$i][1][0], 'name');
+            if ($params && isset($params['active']) && $params['active'])
+            {
+                $menu = new Menus_Menu($Eresus, Eresus_Kernel::app()->getPage(), $params, $this->ids);
+                $html = $menu->render();
+                $text = substr_replace($text, $html, $menus[$i][0][1] + $delta, strlen($menus[$i][0][0]));
+                $delta += strlen($html) - strlen($menus[$i][0][0]);
+            }
+        }
+        return $text;
+    }
 
-	/**
-	 * Добавление пункта в меню "Расширения"
-	 */
-	public function adminOnMenuRender()
-	{
-		Eresus_Kernel::app()->getPage()->addMenuItem(admExtensions,
-			array ('access' => ADMIN, 'link' => $this->name, 'caption' => $this->title,
-				'hint' => $this->description));
-	}
-	//------------------------------------------------------------------------------
+    /**
+     * Добавление пункта в меню "Расширения"
+     */
+    public function adminOnMenuRender()
+    {
+        Eresus_Kernel::app()->getPage()->addMenuItem(admExtensions,
+            array('access' => ADMIN, 'link' => $this->name, 'caption' => $this->title,
+                'hint' => $this->description));
+    }
 
-	/**
-	 * @see Plugin::install()
-	 */
-	public function install()
-	{
-		$this->createTable($this->table);
-		parent::install();
-	}
-	//-----------------------------------------------------------------------------
+    /**
+     * @see Plugin::install()
+     */
+    public function install()
+    {
+        $this->createTable($this->table);
+        parent::install();
+    }
 
-	/**
-	 *
-	 * @param array $table
-	 *
-	 * @return void
-	 *
-	 * @since ?.??
-	 */
-	private function createTable($table)
-	{
-		$Eresus = Eresus_CMS::getLegacyKernel();
+    /**
+     *
+     * @param array $table
+     *
+     * @return void
+     *
+     * @since ?.??
+     */
+    private function createTable($table)
+    {
+        $Eresus = Eresus_CMS::getLegacyKernel();
 
-		$Eresus->db->query('CREATE TABLE IF NOT EXISTS `'.$Eresus->db->prefix.$table['name'].
-			'`'.$table['sql']);
-	}
-	//-----------------------------------------------------------------------------
-
+        $Eresus->db->query('CREATE TABLE IF NOT EXISTS `' . $Eresus->db->prefix . $table['name'] .
+        '`' . $table['sql']);
+    }
 }
