@@ -153,19 +153,15 @@ class Menus extends Eresus_Plugin
             case !is_null(arg('id')):
                 $result = $ctrl->editAction();
                 break;
-
             case arg('action') == 'create':
                 $result = $ctrl->addAction();
                 break;
-
             case !is_null(arg('toggle')):
                 $ctrl->toggleAction(arg('toggle', 'int'));
                 break;
-
             case !is_null(arg('delete')):
                 $ctrl->deleteAction(arg('delete', 'dbsafe'));
                 break;
-
             default:
                 $result = $ctrl->listAction();
         }
