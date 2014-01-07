@@ -55,12 +55,12 @@ class Menus_Controller_Admin
     /**
      * Конструктор контролёра
      *
-     * @param Plugin $owner
-     * @param TAdminUI $ui
+     * @param Eresus_Plugin $owner
+     * @param WebPage       $ui
      *
      * @since 3.00
      */
-    public function __construct(Plugin $owner, TAdminUI $ui)
+    public function __construct(Eresus_Plugin $owner, WebPage $ui)
     {
         $this->plugin = $owner;
         $this->ui = $ui;
