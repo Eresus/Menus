@@ -29,7 +29,7 @@
  *
  * @package Menus
  */
-class Menus extends Plugin
+class Menus extends Eresus_Plugin
 {
     /**
      * Название плагина
@@ -56,7 +56,7 @@ class Menus extends Plugin
      * Требуемая версия ядра
      * @var string
      */
-    public $kernel = '3.00b';
+    public $kernel = '3.01a';
 
     /**
      * Описание плагина
