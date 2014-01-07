@@ -223,7 +223,9 @@ class Menus extends Eresus_Plugin
      */
     public function adminOnMenuRender()
     {
-        Eresus_Kernel::app()->getPage()->addMenuItem(admExtensions,
+        /** @var TAdminUI $page */
+        $page = Eresus_Kernel::app()->getPage();
+        $page->addMenuItem(admExtensions,
             array('access' => ADMIN, 'link' => $this->name, 'caption' => $this->title,
                 'hint' => $this->description));
     }
@@ -253,3 +255,4 @@ class Menus extends Eresus_Plugin
         '`' . $table['sql']);
     }
 }
+
