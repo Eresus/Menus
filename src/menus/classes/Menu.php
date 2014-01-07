@@ -117,8 +117,8 @@ class Menus_Menu
      */
     public function render()
     {
-        $this->template = new Menus_Template();
-        $this->template->loadFromString($this->params['template']);
+        $this->template = new Eresus_Template();
+        $this->template->setSource($this->params['template']);
 
         $this->detectRoot();
         $path = $this->params['root'] > -1 ?
