@@ -140,18 +140,6 @@ class Menus extends Eresus_Plugin
     }
 
     /**
-     * Возвращает путь к директории файлов плагина
-     *
-     * @return string
-     *
-     * @since 3.00
-     */
-    public function getCodeDir()
-    {
-        return $this->dirCode;
-    }
-
-    /**
      * Вывод АИ плагина
      *
      * @return string  HTML
