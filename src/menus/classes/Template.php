@@ -23,8 +23,6 @@
  * информации ознакомьтесь со Стандартной Общественной Лицензией GNU.
  *
  * @package Menus
- *
- * $Id$
  */
 
 /**
@@ -35,18 +33,18 @@
  */
 class Menus_Template extends Template
 {
-	/**
-	 * Загружает код шаблона из строки
-	 *
-	 * @param string $code
-	 *
-	 * @return void
-	 *
-	 * @since 1.00
-	 */
-	public function loadFromString($code)
-	{
-		$this->file = new Dwoo_Template_String($code);
-	}
-	//-----------------------------------------------------------------------------
+    /**
+     * Загружает код шаблона из строки
+     *
+     * @param string $code
+     *
+     * @return void
+     *
+     * @since 1.00
+     */
+    public function loadFromString($code)
+    {
+        $this->file = new Dwoo_Template_String($code);
+    }
 }
+
