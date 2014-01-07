@@ -122,7 +122,7 @@ class Menus_Controller_Admin
             $menu = null;
         }
 
-        $form = new EresusForm($this->plugin->templates()->adminPath('form.html'));
+        $form = new EresusForm($this->plugin->templates()->adminPath('form.html', false));
         $form->setValue('sections', $this->adminSectionBranch());
         $form->setValue('action', 'create');
         $form->setValue('menu', $menu);
@@ -170,7 +170,7 @@ class Menus_Controller_Admin
             }
         }
 
-        $form = new EresusForm($this->plugin->templates()->adminPath('form.html'));
+        $form = new EresusForm($this->plugin->templates()->adminPath('form.html', false));
         $form->setValue('sections', $this->adminSectionBranch());
         $form->setValue('action', 'edit');
         $form->setValue('menu', $menu);
