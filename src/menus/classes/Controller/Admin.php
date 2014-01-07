@@ -192,12 +192,12 @@ class Menus_Controller_Admin
      */
     public function toggleAction($id)
     {
-        $q = DB::getHandler()->createUpdateQuery();
+        $q = Eresus_DB::getHandler()->createUpdateQuery();
         $e = $q->expr;
         $q->update($this->plugin->table['name'])
             ->set('active', $e->not('active'))
             ->where($e->eq('id', $q->bindValue($id, null, PDO::PARAM_INT)));
-        DB::execute($q);
+        $q->execute();
 
         HTTP::redirect(str_replace('&amp;', '&', $this->ui->url()));
     }
