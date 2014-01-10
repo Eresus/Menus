@@ -104,6 +104,7 @@ class Menus_Controller_Admin
             $menu->invisible = arg('invisible', 'int');
             $menu->expandLevelAuto = arg('expandLevelAuto', 'int');
             $menu->expandLevelMax = arg('expandLevelMax', 'int');
+            $menu->dropDown = arg('dropDown', 'int');
             $menu->template = arg('template', 'dbsafe');
 
             /** @var Menus_Entity_Table_Menu $table */
@@ -161,6 +162,7 @@ class Menus_Controller_Admin
             $menu->invisible = arg('invisible', 'int');
             $menu->expandLevelAuto = arg('expandLevelAuto', 'int');
             $menu->expandLevelMax = arg('expandLevelMax', 'int');
+            $menu->dropDown = arg('dropDown', 'int');
             $menu->template = arg('template', 'dbsafe');
 
             $test = $table->findByName($menu->name);

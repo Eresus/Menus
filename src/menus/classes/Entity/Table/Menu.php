@@ -78,6 +78,11 @@ class Menus_Entity_Table_Menu extends ORM_Table
                 'unsigned' => true,
                 'default' => 0,
             ),
+            'dropDown' => array(
+                'type' => 'integer',
+                'unsigned' => true,
+                'default' => 0,
+            ),
             'template' => array(
                 'type' => 'string',
                 'length' => 65535,

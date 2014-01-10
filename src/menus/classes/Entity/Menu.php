@@ -36,6 +36,7 @@
  * @property bool   $invisible
  * @property int    $expandLevelAuto
  * @property int    $expandLevelMax
+ * @property int    $dropDown
  * @property string $template
  *
  * @package Menus

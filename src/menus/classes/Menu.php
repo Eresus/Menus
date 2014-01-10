@@ -195,6 +195,7 @@ class Menus_Menu
         }
 
         $vars = array('menuName' => $this->menu->name, 'level' => $level);
+        $vars['isDropDown'] = $this->menu->dropDown > 1 && $level >= $this->menu->dropDown;
         $vars['items'] = $sections->children($ownerId, $this->accessThreshold, $this->sectionsFilter);
 
         $html = '';

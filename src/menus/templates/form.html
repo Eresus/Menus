@@ -104,6 +104,17 @@
 								можно будет развернуть все уровни.
 							</td>
 						</tr>
+                        <tr>
+                            <td>
+                                <label for="dropDown-input">Сколько уровней развернуть изначально:</label><br />
+                                <input type="number" name="dropDown" id="dropDown-input" maxlength="3"
+                                    size="2" required="required" min="0" value="{if $menu}{$menu->dropDown|escape}{else}0{/if}" />
+                            </td>
+                            <td class="ui-minor">
+                                Начиная с какого уровня меню должно быть выпадающим. Если это значение
+                                меньше 2, то меню будет полностью статичным.
+                            </td>
+                        </tr>
 					</table>
 				</fc:tab>
 				
@@ -115,15 +126,13 @@
 					<div>
 						<label for="template-input">Шаблон одного уровня меню:<sup>*</sup></label><br />
 						<textarea rows="10" cols="100" name="template" id="template-input" required="required"
-							style="width: 99%;">{if $menu}{$menu->template|escape}{else}
-&lt;ul class="\{$menuName} level-\{$level}"&gt;
+							style="width: 99%;">{if $menu}{$menu->template|escape}{else}&lt;ul class="menu \{$menuName} level-\{$level}\{if $isDropDown} menu_is_dropdown\{/if}"&gt;
   \{foreach $items item}
-  &lt;li class="\{$menuName}__item\{if $item.isOpened} \{$menuName}__item_is_opened\{/if}\{if $item.isCurrent} \{$menuName}__item_is_current\{/if}"&gt;
+  &lt;li class="menu__item \{$menuName}__item\{if $item.isOpened} \{$menuName}__item_is_opened\{/if}\{if $item.isCurrent} \{$menuName}__item_is_current\{/if}"&gt;
     &lt;a href="\{$item.url}" class="\{$menuName}__link"&gt;\{$item.caption}&lt;/a&gt;\{$item.submenu}
   &lt;/li&gt;
   \{/foreach}
-&lt;/ul&gt;{/if}
-						</textarea>
+&lt;/ul&gt;{/if}</textarea>
 					</div>
 					<div>
 						Переменные, доступные в шаблоне:
