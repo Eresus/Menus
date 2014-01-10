@@ -51,12 +51,12 @@ class Menus_Menu
     protected $ui;
 
     /**
-     * Параметры меню
+     * Меню
      *
-     * @var array
+     * @var Menus_Entity_Menu
      * @since 2.03
      */
-    protected $params;
+    protected $menu;
 
     /**
      * …
@@ -91,20 +91,20 @@ class Menus_Menu
     /**
      * Конструктор меню
      *
-     * @param Eresus $Eresus
-     * @param TClientUI $ui
-     * @param array $params   параметры меню
-     * @param array $ids      …
+     * @param Eresus            $Eresus
+     * @param TClientUI         $ui
+     * @param Menus_Entity_Menu $menu
+     * @param array             $ids
      *
      * @return Menus_Menu
      *
      * @since 2.03
      */
-    public function __construct(Eresus $Eresus, TClientUI $ui, array $params, array $ids)
+    public function __construct(Eresus $Eresus, TClientUI $ui, Menus_Entity_Menu $menu, array $ids)
     {
         $this->Eresus = $Eresus;
         $this->ui = $ui;
-        $this->params = $params;
+        $this->menu = $menu;
         $this->ids = $ids;
     }
 
@@ -118,20 +118,20 @@ class Menus_Menu
     public function render()
     {
         $this->template = new Menus_Template();
-        $this->template->loadFromString($this->params['template']);
+        $this->template->loadFromString($this->menu->template);
 
         $this->detectRoot();
-        $path = $this->params['root'] > -1 ?
-            $this->ui->clientURL($this->params['root']) :
+        $path = $this->menu->root > -1 ?
+            $this->ui->clientURL($this->menu->root) :
             $this->Eresus->request['path'];
 
         /* Определяем допустимый уровень доступа */
         $user = $this->Eresus->user;
         $this->accessThreshold = $user['auth'] ? $user['access'] : GUEST;
         // Определяем условия фильтрации
-        $this->sectionsFilter = SECTIONS_ACTIVE | ($this->params['invisible'] ? 0 : SECTIONS_VISIBLE);
+        $this->sectionsFilter = SECTIONS_ACTIVE | ($this->menu->invisible ? 0 : SECTIONS_VISIBLE);
 
-        $html = $this->renderBranch($this->params['root'], $path);
+        $html = $this->renderBranch($this->menu->root, $path);
 
         return $html;
     }
@@ -145,21 +145,21 @@ class Menus_Menu
      */
     protected function detectRoot()
     {
-        if ($this->params['root'] == -1 && $this->params['rootLevel'])
+        if ($this->menu->root == -1 && $this->menu->rootLevel)
         {
             $parents = $this->Eresus->sections->parents($this->ui->id);
             $level = count($parents);
-            if ($level == $this->params['rootLevel'])
+            if ($level == $this->menu->rootLevel)
             {
-                $this->params['root'] = -1;
+                $this->menu->root = -1;
             }
-            elseif ($level > $this->params['rootLevel'])
+            elseif ($level > $this->menu->rootLevel)
             {
-                $this->params['root'] = $this->params['root'] = $parents[$this->params['rootLevel']];
+                $this->menu->root = $parents[$this->menu->rootLevel];
             }
             else
             {
-                $this->params['root'] = -2;
+                $this->menu->root = -2;
             }
         }
     }
@@ -194,7 +194,7 @@ class Menus_Menu
             $path = 'main/';
         }
 
-        $vars = array('menuName' => $this->params['name'], 'level' => $level);
+        $vars = array('menuName' => $this->menu->name, 'level' => $level);
         $vars['items'] = $sections->children($ownerId, $this->accessThreshold, $this->sectionsFilter);
 
         $html = '';
@@ -212,11 +212,11 @@ class Menus_Menu
                 // true если раздел находится в выбранной ветке
                 $inSelectedBranch = $item['isOpened'] || $item['isCurrent'];
                 // true если не достигнут максимальный уровень ручного развёртывания
-                $notMaxExpandLevel = !$this->params['expandLevelMax'] ||
-                    $item['level'] < $this->params['expandLevelMax'];
+                $notMaxExpandLevel = !$this->menu->expandLevelMax ||
+                    $item['level'] < $this->menu->expandLevelMax;
                 // true если не достигнут максимальный уровень автоматического развёртывания
-                $notMaxAutoExpandLevel = !$this->params['expandLevelAuto'] ||
-                    $item['level'] < $this->params['expandLevelAuto'];
+                $notMaxAutoExpandLevel = !$this->menu->expandLevelAuto ||
+                    $item['level'] < $this->menu->expandLevelAuto;
 
                 if ($notMaxAutoExpandLevel || ($inSelectedBranch && $notMaxExpandLevel))
                 {

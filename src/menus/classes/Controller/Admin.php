@@ -66,8 +66,6 @@ class Menus_Controller_Admin
         $this->ui = $ui;
     }
 
-    //-----------------------------------------------------------------------------
-
     /**
      * Возвращает разметку списка меню
      *
@@ -86,8 +84,6 @@ class Menus_Controller_Admin
         return $html;
     }
 
-    //-----------------------------------------------------------------------------
-
     /**
      * Добавление меню
      *
@@ -99,21 +95,22 @@ class Menus_Controller_Admin
 
         if ('POST' == $req['method'])
         {
-            $menu = array(
-                'name' => arg('name', 'word'),
-                'caption' => arg('caption', 'dbsafe'),
-                'active' => true,
-                'root' => arg('root', 'int'),
-                'rootLevel' => arg('rootLevel', 'int'),
-                'invisible' => arg('invisible', 'int'),
-                'expandLevelAuto' => arg('expandLevelAuto', 'int'),
-                'expandLevelMax' => arg('expandLevelMax', 'int'),
-                'template' => arg('template', 'dbsafe'),
-            );
+            $menu = new Menus_Entity_Menu($this->plugin);
+            $menu->name = arg('name', 'word');
+            $menu->caption = arg('caption', 'dbsafe');
+            $menu->active = true;
+            $menu->root = arg('root', 'int');
+            $menu->rootLevel = arg('rootLevel', 'int');
+            $menu->invisible = arg('invisible', 'int');
+            $menu->expandLevelAuto = arg('expandLevelAuto', 'int');
+            $menu->expandLevelMax = arg('expandLevelMax', 'int');
+            $menu->template = arg('template', 'dbsafe');
 
-            if (!$this->plugin->dbItem('', $menu['name'], 'name'))
+            /** @var Menus_Entity_Table_Menu $table */
+            $table = $menu->getTable();
+            if (is_null($table->findByName($menu->name)))
             {
-                $this->plugin->dbInsert('', $menu);
+                $table->persist($menu);
                 HTTP::redirect('admin.php?mod=ext-menus');
             }
             else
@@ -135,8 +132,6 @@ class Menus_Controller_Admin
         return $html;
     }
 
-    //------------------------------------------------------------------------------
-
     /**
      * Изменение меню
      *
@@ -144,9 +139,12 @@ class Menus_Controller_Admin
      */
     public function editAction()
     {
-        $menu = $this->plugin->dbItem('', arg('id', 'int'));
+        /** @var Menus_Entity_Table_Menu $table */
+        $table = ORM::getTable($this->plugin, 'Menu');
+        /** @var Menus_Entity_Menu $menu */
+        $menu = $table->find(arg('id', 'int'));
 
-        if (!$menu)
+        if (is_null($menu))
         {
             return 'Такое меню не найдено.';
         }
@@ -155,20 +153,21 @@ class Menus_Controller_Admin
 
         if ('POST' == $req['method'])
         {
-            $menu['name'] = arg('name', 'word');
-            $menu['caption'] = arg('caption', 'dbsafe');
-            $menu['active'] = arg('active');
-            $menu['root'] = arg('root', 'int');
-            $menu['rootLevel'] = arg('rootLevel', 'int');
-            $menu['invisible'] = arg('invisible', 'int');
-            $menu['expandLevelAuto'] = arg('expandLevelAuto', 'int');
-            $menu['expandLevelMax'] = arg('expandLevelMax', 'int');
-            $menu['template'] = arg('template', 'dbsafe');
+            $menu->name = arg('name', 'word');
+            $menu->caption = arg('caption', 'dbsafe');
+            $menu->active = true;
+            $menu->root = arg('root', 'int');
+            $menu->rootLevel = arg('rootLevel', 'int');
+            $menu->invisible = arg('invisible', 'int');
+            $menu->expandLevelAuto = arg('expandLevelAuto', 'int');
+            $menu->expandLevelMax = arg('expandLevelMax', 'int');
+            $menu->template = arg('template', 'dbsafe');
 
-            if (!$this->plugin->dbSelect('', "name = '{$menu['name']}' AND id <> {$menu['id']}"))
+            $test = $table->findByName($menu->name);
+            if (is_null($test) || $test->id == $menu->id)
             {
-                $this->plugin->dbUpdate('', $menu);
-                HTTP::redirect('admin.php?mod=ext-menus&id=' . $menu['id']);
+                $table->update($menu);
+                HTTP::redirect('admin.php?mod=ext-menus&id=' . $menu->id);
             }
             else
             {
@@ -185,8 +184,6 @@ class Menus_Controller_Admin
         return $html;
     }
 
-    //------------------------------------------------------------------------------
-
     /**
      * Обрабатывает запрос на переключение активности меню
      *
@@ -200,17 +197,19 @@ class Menus_Controller_Admin
      */
     public function toggleAction($id)
     {
-        $q = DB::getHandler()->createUpdateQuery();
-        $e = $q->expr;
-        $q->update($this->plugin->table['name'])
-            ->set('active', $e->not('active'))
-            ->where($e->eq('id', $q->bindValue($id, null, PDO::PARAM_INT)));
-        DB::execute($q);
+        /** @var Menus_Entity_Table_Menu $table */
+        $table = ORM::getTable($this->plugin, 'Menu');
+        /** @var Menus_Entity_Menu $menu */
+        $menu = $table->find($id);
+
+        if (!is_null($menu))
+        {
+            $menu->active = !$menu->active;
+            $table->update($menu);
+        }
 
         HTTP::redirect(str_replace('&amp;', '&', $this->ui->url()));
     }
-
-    //-----------------------------------------------------------------------------
 
     /**
      * Удаляет меню
@@ -221,11 +220,17 @@ class Menus_Controller_Admin
      */
     public function deleteAction($id)
     {
-        $this->plugin->dbDelete('', $id);
+        /** @var Menus_Entity_Table_Menu $table */
+        $table = ORM::getTable($this->plugin, 'Menu');
+        /** @var Menus_Entity_Menu $menu */
+        $menu = $table->find($id);
+
+        if (!is_null($menu))
+        {
+            $table->delete($menu);
+        }
         HTTP::redirect(str_replace('&amp;', '&', $this->ui->url()));
     }
-
-    //-----------------------------------------------------------------------------
 
     /**
      * Построение ветки разделов для диалогов добавления/изменения
@@ -255,6 +260,5 @@ class Menus_Controller_Admin
         }
         return $result;
     }
-    //------------------------------------------------------------------------------
-
 }
+
