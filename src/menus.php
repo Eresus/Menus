@@ -50,7 +50,7 @@ class Menus extends Plugin
      *
      * @var string
      */
-    public $version = '1.00';
+    public $version = '${product.version}';
 
     /**
      * Требуемая версия ядра
