@@ -115,15 +115,13 @@
 					<div>
 						<label for="template-input">Шаблон одного уровня меню:<sup>*</sup></label><br />
 						<textarea rows="10" cols="100" name="template" id="template-input" required="required"
-							style="width: 99%;">{if $menu}{$menu.template|escape}{else}
-&lt;ul class="\{$menuName} level-\{$level}"&gt;
+							style="width: 99%;">{if $menu}{$menu.template|escape}{else}&lt;ul class="\{$menuName} level-\{$level}"&gt;
   \{foreach $items item}
   &lt;li class="\{$menuName}__item\{if $item.isOpened} \{$menuName}__item_is_opened\{/if}\{if $item.isCurrent} \{$menuName}__item_is_current\{/if}"&gt;
     &lt;a href="\{$item.url}" class="\{$menuName}__link"&gt;\{$item.caption}&lt;/a&gt;\{$item.submenu}
   &lt;/li&gt;
   \{/foreach}
-&lt;/ul&gt;{/if}
-						</textarea>
+&lt;/ul&gt;{/if}</textarea>
 					</div>
 					<div>
 						Переменные, доступные в шаблоне:
