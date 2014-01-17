@@ -97,21 +97,6 @@ class Menus extends Eresus_Plugin
                 array('caption' => 'Создать меню', 'name' => 'action', 'value' => 'create')
             ),
         ),
-        'sql' => "(
-			`id` int(10) unsigned NOT NULL auto_increment,
-			`name` varchar(255) default NULL,
-			`caption` varchar(255) default NULL,
-			`active` tinyint(1) unsigned default NULL,
-			`root` int(10) default NULL,
-			`rootLevel` int(10) unsigned default 0,
-			`invisible` tinyint(1) unsigned default 0,
-			`expandLevelAuto` int(10) unsigned default 0,
-			`expandLevelMax` int(10) unsigned default 0,
-			`template` text,
-			PRIMARY KEY  (`id`),
-			KEY `client` (`name`, `active`),
-			KEY `admin` (`name`)
-		);",
     );
 
     /**
@@ -195,24 +180,35 @@ class Menus extends Eresus_Plugin
         $Eresus = Eresus_CMS::getLegacyKernel();
 
         preg_match_all('/\$\(Menus:(.+)?\)/Usi', $text, $menus, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
-        $delta = 0;
-
-        $relative = substr($Eresus->request['url'], strlen($Eresus->root), 5);
-
-        if ($relative && $relative != 'main/')
+        if (count($menus))
         {
-            array_shift($this->ids);
-        }
+            /** @var TClientUI $page */
+            $page = Eresus_Kernel::app()->getPage();
+            $page->linkStyles($this->getCodeURL() . 'client/menus.css');
+            $page->linkJsLib('jquery');
+            $page->linkScripts($this->getCodeURL() . 'client/menus.js');
 
-        for ($i = 0; $i < count($menus); $i++)
-        {
-            $params = $this->dbItem('', $menus[$i][1][0], 'name');
-            if ($params && isset($params['active']) && $params['active'])
+            $delta = 0;
+
+            $relative = substr($Eresus->request['url'], strlen($Eresus->root), 5);
+
+            if ($relative && $relative != 'main/')
             {
-                $menu = new Menus_Menu($Eresus, Eresus_Kernel::app()->getPage(), $params, $this->ids);
-                $html = $menu->render();
-                $text = substr_replace($text, $html, $menus[$i][0][1] + $delta, strlen($menus[$i][0][0]));
-                $delta += strlen($html) - strlen($menus[$i][0][0]);
+                array_shift($this->ids);
+            }
+
+            /** @var Menus_Entity_Table_Menu $table */
+            $table = ORM::getTable($this, 'Menu');
+            for ($i = 0; $i < count($menus); $i++)
+            {
+                $entity = $table->findByName($menus[$i][1][0]);
+                if ($entity && $entity->active)
+                {
+                    $menu = new Menus_Menu($Eresus, $page, $entity, $this->ids);
+                    $html = $menu->render();
+                    $text = substr_replace($text, $html, $menus[$i][0][1] + $delta, strlen($menus[$i][0][0]));
+                    $delta += strlen($html) - strlen($menus[$i][0][0]);
+                }
             }
         }
         return $text;
@@ -231,28 +227,21 @@ class Menus extends Eresus_Plugin
     }
 
     /**
-     * @see Plugin::install()
+     * Действия при установке модуля
      */
     public function install()
     {
-        $this->createTable($this->table);
         parent::install();
+        ORM::getTable($this, 'Menu')->create();
     }
 
     /**
-     *
-     * @param array $table
-     *
-     * @return void
-     *
-     * @since ?.??
+     * Действия при установке модуля
      */
-    private function createTable($table)
+    public function uninstall()
     {
-        $Eresus = Eresus_CMS::getLegacyKernel();
-
-        $Eresus->db->query('CREATE TABLE IF NOT EXISTS `' . $Eresus->db->prefix . $table['name'] .
-        '`' . $table['sql']);
+        ORM::getTable($this, 'Menu')->drop();
+        parent::uninstall();
     }
 }
 
