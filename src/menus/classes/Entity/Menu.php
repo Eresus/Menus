@@ -1,14 +1,12 @@
 <?php
 /**
- * Menus
- *
- * Шаблон
+ * Меню
  *
  * @version ${product.version}
  *
- * @copyright 2012, ООО "Два слона", http://dvaslona.ru/
+ * @copyright 2013, ООО "Два слона", http://dvaslona.ru/
  * @license http://www.gnu.org/licenses/gpl.txt GPL License 3
- * @author Михаил Красильников <mihalych@vsepofigu.ru>
+ * @author Михаил Красильников <mk@dvaslona.ru>
  *
  * Данная программа является свободным программным обеспечением. Вы
  * вправе распространять ее и/или модифицировать в соответствии с
@@ -23,30 +21,28 @@
  * информации ознакомьтесь со Стандартной Общественной Лицензией GNU.
  *
  * @package Menus
- *
- * $Id: Template.php 1457 2012-04-16 12:04:36Z mk $
  */
 
+
 /**
- * Расширенный шаблон
+ * Меню
+ *
+ * @property int    $id
+ * @property string $name
+ * @property string $caption
+ * @property bool   $active
+ * @property int    $root
+ * @property int    $rootLevel
+ * @property bool   $invisible
+ * @property int    $expandLevelAuto
+ * @property int    $expandLevelMax
+ * @property int    $dropDown
+ * @property string $template
  *
  * @package Menus
- * @since 3.00
+ * @since x.xx
  */
-class Menus_Template extends Template
+class Menus_Entity_Menu extends ORM_Entity
 {
-	/**
-	 * Загружает код шаблона из строки
-	 *
-	 * @param string $code
-	 *
-	 * @return void
-	 *
-	 * @since 1.00
-	 */
-	public function loadFromString($code)
-	{
-		$this->file = new Dwoo_Template_String($code);
-	}
-	//-----------------------------------------------------------------------------
 }
+

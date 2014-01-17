@@ -5,7 +5,7 @@
 	
 		<input type="hidden" name="mod" value="ext-menus" />
 		<input type="hidden" name="action" value="{$action}" />
-		{if 'edit' == $action}<input type="hidden" name="id" value="{$menu.id}" />{/if}
+		{if 'edit' == $action}<input type="hidden" name="id" value="{$menu->id}" />{/if}
 	
 		<fc:tabwidget id="settingsFormTabs">
 
@@ -22,7 +22,7 @@
 							<td>
 								<label for="caption-input">Название:<sup>*</sup></label><br />
 								<input type="text" name="caption" id="caption-input" maxlength="255" size="40"
-									required="required"{if $menu} value="{$menu.caption|escape}"{/if} />
+									required="required"{if $menu} value="{$menu->caption|escape}"{/if} />
 							</td>
 							<td class="ui-minor">
 								Название меню для внутреннего пользования, оно не будет видно посетителям сайта.
@@ -32,7 +32,7 @@
 							<td>
 								<label for="name-input">Имя для вставки в шаблоны:<sup>*</sup></label><br />
 								<input type="text" name="name" id="name-input" maxlength="255" size="40"
-									{if $menu} value="{$menu.name|escape}"{/if}
+									{if $menu} value="{$menu->name|escape}"{/if}
 									required="required" pattern="^[a-zA-Z0-9_\-]+$"
 									title="Только латинские буквы, цифры и символы «_» и «-»" />
 							</td>
@@ -46,10 +46,10 @@
 								<label for="root-input">Корневой раздел:</label><br />
 								<select name="root" id="root-input"
 									onchange="this.form.rootLevel.disabled = this.value != -1">
-									<option value="0"{if $menu && 0 == $menu.root} selected="selected"{/if}>КОРЕНЬ САЙТА</option>
-									<option value="-1"{if $menu && -1 == $menu.root} selected="selected"{/if}>ТЕКУЩИЙ РАЗДЕЛ</option>
+									<option value="0"{if $menu && 0 == $menu->root} selected="selected"{/if}>КОРЕНЬ САЙТА</option>
+									<option value="-1"{if $menu && -1 == $menu->root} selected="selected"{/if}>ТЕКУЩИЙ РАЗДЕЛ</option>
 									{foreach $sections section}
-									<option value="{$section.id}"{if $menu && $section.id == $menu.root} selected="selected"{/if}>{$section.caption}</option>
+									<option value="{$section.id}"{if $menu && $section.id == $menu->root} selected="selected"{/if}>{$section.caption}</option>
 									{/foreach}
 								</select>
 							</td>
@@ -61,8 +61,8 @@
 							<td>
 								<label for="rootLevel-input">Фиксированный уровень:</label><br />
 								<input type="number" name="rootLevel" id="rootLevel-input" maxlength="3" size="2"
-									required="required" min="0" value="{if $menu}{$menu.rootLevel|escape}{else}0{/if}"
-									{if !$menu || -1 != $menu.root} disabled="disabled"{/if} />
+									required="required" min="0" value="{if $menu}{$menu->rootLevel|escape}{else}0{/if}"
+									{if !$menu || -1 != $menu->root} disabled="disabled"{/if} />
 							</td>
 							<td class="ui-minor">
 								Используется только если Корневой раздел установлен в «ТЕКУЩИЙ РАЗДЕЛ». В меню будут
@@ -73,7 +73,7 @@
 						<tr>
 							<td>
 								<label>
-									<input type="checkbox" name="invisible" value="1"{if $menu && $menu.invisible} checked="checked"{/if} />
+									<input type="checkbox" name="invisible" value="1"{if $menu && $menu->invisible} checked="checked"{/if} />
 									<span>Показывать скрытые разделы</span>
 								</label>
 							</td>
@@ -86,7 +86,7 @@
 							<td>
 								<label for="expandLevelAuto-input">Сколько уровней развернуть изначально:</label><br />
 								<input type="number" name="expandLevelAuto" id="expandLevelAuto-input" maxlength="3" 
-									size="2" required="required" min="0" value="{if $menu}{$menu.expandLevelAuto|escape}{else}0{/if}" />
+									size="2" required="required" min="0" value="{if $menu}{$menu->expandLevelAuto|escape}{else}0{/if}" />
 							</td>
 							<td class="ui-minor">
 								Определяет сколько уровней меню будет развёрнуто по умолчанию. Если это значение 0,
@@ -97,13 +97,24 @@
 							<td>
 								<label for="expandLevelMax-input">Сколько уровней развернуть максимум:</label><br />
 								<input type="number" name="expandLevelMax" id="expandLevelMax-input" maxlength="3" 
-									size="2" required="required" min="0" value="{if $menu}{$menu.expandLevelMax|escape}{else}0{/if}" />
+									size="2" required="required" min="0" value="{if $menu}{$menu->expandLevelMax|escape}{else}0{/if}" />
 							</td>
 							<td class="ui-minor">
 								Определяет сколько уровней может развернуть посетитель. Если это значение 0, то
 								можно будет развернуть все уровни.
 							</td>
 						</tr>
+                        <tr>
+                            <td>
+                                <label for="dropDown-input">Сколько уровней развернуть изначально:</label><br />
+                                <input type="number" name="dropDown" id="dropDown-input" maxlength="3"
+                                    size="2" required="required" min="0" value="{if $menu}{$menu->dropDown|escape}{else}0{/if}" />
+                            </td>
+                            <td class="ui-minor">
+                                Начиная с какого уровня меню должно быть выпадающим. Если это значение
+                                меньше 2, то меню будет полностью статичным.
+                            </td>
+                        </tr>
 					</table>
 				</fc:tab>
 				
@@ -115,15 +126,13 @@
 					<div>
 						<label for="template-input">Шаблон одного уровная меню:<sup>*</sup></label><br />
 						<textarea rows="10" cols="100" name="template" id="template-input" required="required"
-							style="width: 99%;">{if $menu}{$menu.template|escape}{else}
-&lt;ul class="\{$menuName} level-\{$level}"&gt;
+							style="width: 99%;">{if $menu}{$menu->template|escape}{else}&lt;ul class="menu \{$menuName} level-\{$level}\{if $isDropDown} menu_is_dropdown\{/if}"&gt;
   \{foreach $items item}
-  &lt;li class="\{$menuName}__item\{if $item.isOpened} \{$menuName}__item_is_opened\{/if}\{if $item.isCurrent} \{$menuName}__item_is_current\{/if}"&gt;
+  &lt;li class="menu__item \{$menuName}__item\{if $item.isOpened} \{$menuName}__item_is_opened\{/if}\{if $item.isCurrent} \{$menuName}__item_is_current\{/if}"&gt;
     &lt;a href="\{$item.url}" class="\{$menuName}__link"&gt;\{$item.caption}&lt;/a&gt;\{$item.submenu}
   &lt;/li&gt;
   \{/foreach}
-&lt;/ul&gt;{/if}
-						</textarea>
+&lt;/ul&gt;{/if}</textarea>
 					</div>
 					<div>
 						Переменные, доступные в шаблоне:

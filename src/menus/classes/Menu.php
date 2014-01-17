@@ -1,7 +1,5 @@
 <?php
 /**
- * Menus
- *
  * Меню
  *
  * @version ${product.version}
@@ -23,248 +21,213 @@
  * информации ознакомьтесь со Стандартной Общественной Лицензией GNU.
  *
  * @package Menus
- *
- * $Id$
  */
 
 
 /**
  * Меню
  *
- * Класс отвечает за построение и отрисовку конкретного меню в КИ.
+ * Отвечает за построение и отрисовку конкретного меню в КИ.
  *
  * @package Menus
  * @since 2.03
  */
 class Menus_Menu
 {
-	/**
-	 * Объект Eresus
-	 *
-	 * @var Eresus
-	 * @since 3.00
-	 */
-	protected $Eresus;
+    /**
+     * Объект Eresus
+     *
+     * @var Eresus
+     * @since 3.00
+     */
+    protected $Eresus;
 
-	/**
-	 * Объект КИ
-	 *
-	 * @var TClientUI
-	 * @since 3.00
-	 */
-	protected $ui;
+    /**
+     * Объект КИ
+     *
+     * @var TClientUI
+     * @since 3.00
+     */
+    protected $ui;
 
-	/**
-	 * Параметры меню
-	 *
-	 * @var array
-	 * @since 2.03
-	 */
-	protected $params;
+    /**
+     * Меню
+     *
+     * @var Menus_Entity_Menu
+     * @since 2.03
+     */
+    protected $menu;
 
-	/**
-	 * …
-	 *
-	 * @var array
-	 * @since 2.03
-	 */
-	protected $ids;
+    /**
+     * …
+     *
+     * @var array
+     * @since 2.03
+     */
+    protected $ids;
 
-	/**
-	 * Порог доступа к разделам
-	 *
-	 * @var int
-	 */
-	protected $accessThreshold;
+    /**
+     * Порог доступа к разделам
+     *
+     * @var int
+     */
+    protected $accessThreshold;
 
-	/**
-	 * Флаги фильтрации разделов
-	 *
-	 * @var int
-	 */
-	protected $sectionsFilter;
+    /**
+     * Флаги фильтрации разделов
+     *
+     * @var int
+     */
+    protected $sectionsFilter;
 
-	/**
-	 * Шаблон одного уровня меню
-	 *
-	 * @var Menus_Template
-	 * @since 3.00
-	 */
-	protected $template;
+    /**
+     * Шаблон одного уровня меню
+     *
+     * @var Menus_Template
+     * @since 3.00
+     */
+    protected $template;
 
-	/**
-	 * Конструктор меню
-	 *
-	 * @param Eresus    $Eresus
-	 * @param TClientUI $ui
-	 * @param array     $params   параметры меню
-	 * @param array     $ids      …
-	 *
-	 * @return Menus_Menu
-	 *
-	 * @since 2.03
-	 */
-	public function __construct(Eresus $Eresus, TClientUI $ui, array $params, array $ids)
-	{
-		$this->Eresus = $Eresus;
-		$this->ui = $ui;
-		$this->params = $params;
-		$this->ids = $ids;
-	}
-	//-----------------------------------------------------------------------------
+    /**
+     * Конструктор меню
+     *
+     * @param Eresus            $Eresus
+     * @param TClientUI         $ui
+     * @param Menus_Entity_Menu $menu
+     * @param array             $ids
+     *
+     * @return Menus_Menu
+     *
+     * @since 2.03
+     */
+    public function __construct(Eresus $Eresus, TClientUI $ui, Menus_Entity_Menu $menu, array $ids)
+    {
+        $this->Eresus = $Eresus;
+        $this->ui = $ui;
+        $this->menu = $menu;
+        $this->ids = $ids;
+    }
 
-	/**
-	 * Возвращает разметку меню
-	 *
-	 * @return string  HTML
-	 *
-	 * @since 2.03
-	 */
-	public function render()
-	{
-		$this->template = new Menus_Template();
-		$this->template->loadFromString($this->params['template']);
+    /**
+     * Возвращает разметку меню
+     *
+     * @return string  HTML
+     *
+     * @since 2.03
+     */
+    public function render()
+    {
+        $this->template = new Menus_Template();
+        $this->template->loadFromString($this->menu->template);
 
-		$this->detectRoot();
-		$path = $this->params['root'] > -1 ?
-			$this->ui->clientURL($this->params['root']) :
-			$this->Eresus->request['path'];
+        $this->detectRoot();
+        $path = $this->menu->root > -1 ?
+            $this->ui->clientURL($this->menu->root) :
+            $this->Eresus->request['path'];
 
-		/* Определяем допустимый уровень доступа */
-		$user = $this->Eresus->user;
-		$this->accessThreshold = $user['auth'] ? $user['access'] : GUEST;
+        /* Определяем допустимый уровень доступа */
+        $user = $this->Eresus->user;
+        $this->accessThreshold = $user['auth'] ? $user['access'] : GUEST;
+        // Определяем условия фильтрации
+        $this->sectionsFilter = SECTIONS_ACTIVE | ($this->menu->invisible ? 0 : SECTIONS_VISIBLE);
 
-		// Определяем условия фильтрации
-		$this->sectionsFilter = SECTIONS_ACTIVE | ( $this->params['invisible'] ? 0 : SECTIONS_VISIBLE );
+        $html = $this->renderBranch($this->menu->root, $path);
 
-		$html = $this->renderBranch($this->params['root'], $path);
+        return $html;
+    }
 
-		return $html;
-	}
-	//-----------------------------------------------------------------------------
+    /**
+     * Определяет идентификатор корневого раздела меню
+     *
+     * @return void
+     *
+     * @since 2.03
+     */
+    protected function detectRoot()
+    {
+        if ($this->menu->root == -1 && $this->menu->rootLevel)
+        {
+            $parents = $this->Eresus->sections->parents($this->ui->id);
+            $level = count($parents);
+            if ($level == $this->menu->rootLevel)
+            {
+                $this->menu->root = -1;
+            }
+            elseif ($level > $this->menu->rootLevel)
+            {
+                $this->menu->root = $parents[$this->menu->rootLevel];
+            }
+            else
+            {
+                $this->menu->root = -2;
+            }
+        }
+    }
 
-	/**
-	 * Определяет идентификатор корневого раздела меню
-	 *
-	 * @return void
-	 *
-	 * @since 2.03
-	 */
-	protected function detectRoot()
-	{
-		if ($this->params['root'] == -1 && $this->params['rootLevel'])
-		{
-			$parents = $this->Eresus->sections->parents($this->ui->id);
-			$level = count($parents);
-			if ($level == $this->params['rootLevel'])
-			{
-				$this->params['root'] = -1;
-			}
-			elseif ($level > $this->params['rootLevel'])
-			{
-				$this->params['root'] = $this->params['root'] = $parents[$this->params['rootLevel']];
-			}
-			else
-			{
-				$this->params['root'] = -2;
-			}
-		}
-	}
-	//-----------------------------------------------------------------------------
+    /**
+     * Построение ветки меню
+     *
+     * @param int $ownerId  идентификатор родительского раздела
+     * @param string $path     URL родительского раздела
+     * @param int $level    Уровень вложенности
+     *
+     * @return string  HTML
+     *
+     * @uses Eresus
+     * @uses TClientUI
+     */
+    protected function renderBranch($ownerId = 0, $path = '', $level = 1)
+    {
+        $sections = $this->Eresus->sections;
 
-	/**
-	 * Построение ветки меню
-	 *
-	 * @param int    $ownerId  идентификатор родительского раздела
-	 * @param string $path     URL родительского раздела
-	 * @param int    $level    Уровень вложенности
-	 *
-	 * @return string  HTML
-	 *
-	 * @uses Eresus
-	 * @uses TClientUI
-	 */
-	protected function renderBranch($ownerId = 0, $path = '', $level = 1)
-	{
-		$sections = $this->Eresus->sections;
+        if (strpos($path, $this->Eresus->root) !== false)
+        {
+            $path = substr($path, strlen($this->Eresus->root));
+        }
+        if ($ownerId == -1)
+        {
+            $ownerId = $this->ui->id;
+        }
+        $rootItem = $sections->get($ownerId);
+        if ($rootItem && 0 == $rootItem['owner'] && 'main' == $rootItem['name'])
+        {
+            $path = 'main/';
+        }
 
-		if (strpos($path, $this->Eresus->root) !== false)
-		{
-			$path = substr($path, strlen($this->Eresus->root));
-		}
-		if ($ownerId == -1)
-		{
-			$ownerId = $this->ui->id;
-		}
-		$rootItem = $sections->get($ownerId);
-		if ($rootItem && 0 == $rootItem['owner'] && 'main' == $rootItem['name'])
-		{
-			$path = 'main/';
-		}
+        $vars = array('menuName' => $this->menu->name, 'level' => $level);
+        $vars['isDropDown'] = $this->menu->dropDown > 1 && $level >= $this->menu->dropDown;
+        $vars['items'] = $sections->children($ownerId, $this->accessThreshold, $this->sectionsFilter);
 
-		$vars = array('menuName' => $this->params['name'], 'level' => $level);
-		$vars['items'] = $sections->children($ownerId, $this->accessThreshold, $this->sectionsFilter);
+        $html = '';
+        if (count($vars['items']))
+        {
 
-		$html = '';
-		if (count($vars['items']))
-		{
+            foreach ($vars['items'] as &$item)
+            {
+                $section = new Menus_Site_Section($item);
+                $item['level'] = $level;
+                $item['url'] = $section->getUrl();
+                $item['isCurrent'] = $item['id'] == $this->ui->id;
+                $item['isOpened'] = !$item['isCurrent'] && in_array($item['id'], $this->ids);
 
-			foreach ($vars['items'] as &$item)
-			{
-				$item['level'] = $level;
-				$item['url'] = $this->buildURL($item, $path);
-				$item['isCurrent'] = $item['id'] == $this->ui->id;
-				$item['isOpened'] = !$item['isCurrent'] && in_array($item['id'], $this->ids);
+                // true если раздел находится в выбранной ветке
+                $inSelectedBranch = $item['isOpened'] || $item['isCurrent'];
+                // true если не достигнут максимальный уровень ручного развёртывания
+                $notMaxExpandLevel = !$this->menu->expandLevelMax ||
+                    $item['level'] < $this->menu->expandLevelMax;
+                // true если не достигнут максимальный уровень автоматического развёртывания
+                $notMaxAutoExpandLevel = !$this->menu->expandLevelAuto ||
+                    $item['level'] < $this->menu->expandLevelAuto;
 
-				// true если раздел находится в выбранной ветке
-				$inSelectedBranch = $item['isOpened'] || $item['isCurrent'];
-				// true если не достигнут максимальный уровень ручного развёртывания
-				$notMaxExpandLevel = !$this->params['expandLevelMax'] ||
-				$item['level'] < $this->params['expandLevelMax'];
-				// true если не достигнут максимальный уровень автоматического развёртывания
-				$notMaxAutoExpandLevel = !$this->params['expandLevelAuto'] ||
-				$item['level'] < $this->params['expandLevelAuto'];
-
-				if ($notMaxAutoExpandLevel || ($inSelectedBranch && $notMaxExpandLevel))
-				{
-					$item['submenu'] =
-						$this->renderBranch($item['id'], $path . $item['name'] . '/', $item['level'] + 1);
-				}
-			}
-			$html = $this->template->compile($vars);
-		}
-		return $html;
-	}
-	//------------------------------------------------------------------------------
-
-	/**
-	 * Строит URL для пункта меню
-	 *
-	 * @param array  $item     описание пункта меню
-	 * @param string $rootURL  корневой URL
-	 *
-	 * @return string
-	 *
-	 * @since 2.03
-	 */
-	protected function buildURL(array $item, $rootURL)
-	{
-		/* У разделов типа 'url' собственный механизм построения URL */
-		if ($item['type'] == 'url')
-		{
-			$item = $this->Eresus->sections->get($item['id']);
-			$url = $this->ui->replaceMacros($item['content']);
-			if (substr($url, 0, 1) == '/')
-			{
-				$url = $this->Eresus->root . substr($url, 1);
-			}
-		}
-		else
-		{
-			$url = $this->Eresus->root . $rootURL . ($item['name'] == 'main' ? '' : $item['name'] . '/');
-		}
-
-		return $url;
-	}
-	//-----------------------------------------------------------------------------
+                if ($notMaxAutoExpandLevel || ($inSelectedBranch && $notMaxExpandLevel))
+                {
+                    $item['submenu'] =
+                        $this->renderBranch($item['id'], $path . $item['name'] . '/', $item['level'] + 1);
+                }
+            }
+            $html = $this->template->compile($vars);
+        }
+        return $html;
+    }
 }
+
