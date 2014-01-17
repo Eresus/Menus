@@ -41,7 +41,11 @@ class Menus_MenuTest extends PHPUnit_Framework_TestCase
     {
         $m_renderBranch = new ReflectionMethod('Menus_Menu', 'renderBranch');
         $m_renderBranch->setAccessible(true);
-        $params = array('name' => 'menuFoo', 'expandLevelAuto' => 0, 'expandLevelMax' => 0);
+        $entity = new Menus_Entity_Menu();
+        $entity->name = 'menuFoo';
+        $entity->expandLevelAuto = 0;
+        $entity->expandLevelMax = 0;
+        $entity->dropDown = 0;
         $ids = array();
         $Eresus = new Eresus;
         $Eresus->root = 'http://example.org/';
@@ -60,7 +64,7 @@ class Menus_MenuTest extends PHPUnit_Framework_TestCase
         $Eresus->sections->expects($this->any())->method('children')->will($this->returnValueMap($map));
         $ui = new TClientUI;
         $ui->id = 0;
-        $menu = new Menus_Menu($Eresus, $ui, $params, $ids);
+        $menu = new Menus_Menu($Eresus, $ui, $entity, $ids);
 
         $template = $this->getMock('Template', array('compile'));
         $template->expects($this->once())->method('compile');

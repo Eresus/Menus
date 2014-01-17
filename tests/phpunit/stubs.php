@@ -107,3 +107,13 @@ class EresusRuntimeException extends Exception
 {
 }
 
+/**
+ * Заглушка для класса ORM_Entity
+ *
+ * @package Eresus
+ * @subpackage Tests
+ */
+class ORM_Entity
+{
+}
+
