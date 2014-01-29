@@ -132,7 +132,9 @@ class Menus extends Eresus_Plugin
     public function adminRender()
     {
         $result = '';
-        $ctrl = new Menus_Controller_Admin($this, Eresus_Kernel::app()->getPage());
+        /** @var TAdminUI $page */
+        $page = Eresus_Kernel::app()->getPage();
+        $ctrl = new Menus_Controller_Admin($this, $page);
         switch (true)
         {
             case !is_null(arg('id')):
@@ -232,7 +234,8 @@ class Menus extends Eresus_Plugin
     public function install()
     {
         parent::install();
-        ORM::getTable($this, 'Menu')->create();
+        $driver = ORM::getManager()->getDriver();
+        $driver->createTable(ORM::getTable($this, 'Menu'));
     }
 
     /**
@@ -240,7 +243,8 @@ class Menus extends Eresus_Plugin
      */
     public function uninstall()
     {
-        ORM::getTable($this, 'Menu')->drop();
+        $driver = ORM::getManager()->getDriver();
+        $driver->dropTable(ORM::getTable($this, 'Menu'));
         parent::uninstall();
     }
 }

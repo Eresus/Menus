@@ -37,7 +37,7 @@ class Menus_Entity_Table_Menu extends ORM_Table
      */
     protected function setTableDefinition()
     {
-        $this->setTableName($this->plugin->name);
+        $this->setTableName($this->getPlugin()->getName());
         $this->hasColumns(array(
             'id' => array(
                 'type' => 'integer',

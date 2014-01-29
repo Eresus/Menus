@@ -83,7 +83,7 @@ class Menus_Menu
     /**
      * Шаблон одного уровня меню
      *
-     * @var Menus_Template
+     * @var Eresus_Template
      * @since 3.00
      */
     protected $template;
@@ -117,8 +117,8 @@ class Menus_Menu
      */
     public function render()
     {
-        $this->template = new Menus_Template();
-        $this->template->loadFromString($this->menu->template);
+        $this->template = new Eresus_Template();
+        $this->template->setSource($this->menu->template);
 
         $this->detectRoot();
         $path = $this->menu->root > -1 ?
