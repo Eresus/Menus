@@ -2,7 +2,7 @@
 <declaration uid="ru.eresus.plugins.menus" format="1.00">
 
 	<requires>
-		<plugin name="orm" min="2.00" max="2.00" />
+		<plugin name="orm" min="3.00" max="3.01" />
 	</requires>
 
 </declaration>
