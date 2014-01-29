@@ -55,12 +55,12 @@ class Menus_Controller_Admin
     /**
      * Конструктор контролёра
      *
-     * @param Plugin $owner
-     * @param TAdminUI $ui
+     * @param Eresus_Plugin $owner
+     * @param TAdminUI      $ui
      *
      * @since 3.00
      */
-    public function __construct(Plugin $owner, TAdminUI $ui)
+    public function __construct(Eresus_Plugin $owner, TAdminUI $ui)
     {
         $this->plugin = $owner;
         $this->ui = $ui;
@@ -95,7 +95,7 @@ class Menus_Controller_Admin
 
         if ('POST' == $req['method'])
         {
-            $menu = new Menus_Entity_Menu($this->plugin);
+            $menu = new Menus_Entity_Menu();
             $menu->name = arg('name', 'word');
             $menu->caption = arg('caption', 'dbsafe');
             $menu->active = true;
@@ -124,7 +124,7 @@ class Menus_Controller_Admin
             $menu = null;
         }
 
-        $form = new EresusForm('ext/' . $this->plugin->name . '/templates/form.html');
+        $form = new EresusForm($this->plugin->templates()->adminPath('form.html', false));
         $form->setValue('sections', $this->adminSectionBranch());
         $form->setValue('action', 'create');
         $form->setValue('menu', $menu);
@@ -177,7 +177,7 @@ class Menus_Controller_Admin
             }
         }
 
-        $form = new EresusForm('ext/' . $this->plugin->name . '/templates/form.html');
+        $form = new EresusForm($this->plugin->templates()->adminPath('form.html', false));
         $form->setValue('sections', $this->adminSectionBranch());
         $form->setValue('action', 'edit');
         $form->setValue('menu', $menu);
